@@ -302,6 +302,7 @@
     ["按月记录的停机时长", "Recorded Downtime by Month"],
     ["每月维护成本", "Monthly Maintenance Cost"],
     ["生产量与单位生产量维护成本", "Production Volume and Maintenance Cost per Production Unit"],
+    ["实际成本 / kg", "Actual Cost / kg"],
     ["总成本中心", "Cost Centers"],
     ["查询无匹配记录", "No matching records"],
     ["维护、工时、投资、可靠性与能源运营总览", "Maintenance, working time, investment, reliability and energy overview"],
@@ -1277,19 +1278,42 @@
         .map(item => [item.label, item.value]));
     const years = data.years.map(String);
     if (!years.length) return drawEmpty(container);
+    const productionByYear = new Map();
+    for (const row of data.production) {
+      const year = String(row.year);
+      productionByYear.set(year, (productionByYear.get(year) || 0) + (Number(row.total) || 0));
+    }
+    const costPerKgByYear = new Map(years.map(year => {
+      const productionKg = (productionByYear.get(year) || 0) * 1000;
+      const costPerKg = productionKg
+        ? convertCurrency(actualByYear.get(year) || 0) / productionKg
+        : null;
+      return [year, costPerKg];
+    }));
+    const availableCostPerKg = [...costPerKgByYear.values()]
+      .filter(value => value !== null && Number.isFinite(value));
+    const rawMinimum = Math.min(0, ...availableCostPerKg);
+    const rawMaximum = Math.max(0, ...availableCostPerKg);
+    const costPerKgAxisMin = rawMinimum < 0
+      ? Math.floor(rawMinimum * 1.1 * 20) / 20
+      : 0;
+    const costPerKgAxisMax = rawMaximum > 0
+      ? Math.ceil(rawMaximum * 1.1 * 20) / 20
+      : 1;
+    const costPerKgAxisRange = costPerKgAxisMax - costPerKgAxisMin || 1;
 
     const width = Math.max(container.clientWidth - 14, 300);
     const chartHeight = Math.max(container.clientHeight - 12, 190);
     const height = chartHeight;
     const left = 92;
-    const right = 50;
+    const right = 78;
     const top = 26;
     const bottom = 34;
     const plotHeight = height - top - bottom;
     const plotWidth = width - left - right;
-    const ratioBandHeight = plotHeight * .28;
+    const costPerKgBandHeight = plotHeight * .28;
     const bandGap = 20;
-    const barTop = top + ratioBandHeight + bandGap;
+    const barTop = top + costPerKgBandHeight + bandGap;
     const barHeight = Math.max(1, height - bottom - barTop);
     const barBottom = height - bottom;
     const maximum = Math.max(1, ...years.flatMap(year => [
@@ -1297,10 +1321,10 @@
       budgetByYear.get(year) || 0
     ]));
     const svg = createSvg(container, width, height, "年度预算与实际成本");
-    const ratios = [];
+    const costPerKgPoints = [];
     for (let line = 0; line <= 4; line++) {
-      const ratioValue = 1.5 * (1 - line / 4);
-      const ratioY = top + (ratioBandHeight * line) / 4;
+      const costPerKgValue = costPerKgAxisMax - (costPerKgAxisRange * line) / 4;
+      const axisY = top + (costPerKgBandHeight * line) / 4;
       const y = barTop + (barHeight * line) / 4;
       addGrid(svg, left, y, width - right);
       svg.append(svgElement("text", {
@@ -1308,11 +1332,20 @@
       }, axisMillionsMoney(maximum * (1 - line / 4))));
       svg.append(svgElement("text", {
         x: width - right + 7,
-        y: ratioY + 3,
+        y: axisY + 3,
         "text-anchor": "start",
         class: "svg-value"
-      }, ratioValue.toFixed(2)));
+      }, `${currencyPrefix()}${costPerKgValue.toFixed(2)}`));
     }
+    const rightAxisTitleX = width - 13;
+    const rightAxisTitleY = top + costPerKgBandHeight / 2;
+    svg.append(svgElement("text", {
+      x: rightAxisTitleX,
+      y: rightAxisTitleY,
+      "text-anchor": "middle",
+      class: "svg-category svg-axis-title",
+      transform: `rotate(90 ${rightAxisTitleX} ${rightAxisTitleY})`
+    }, translateText("实际成本 / kg")));
 
     const slot = plotWidth / years.length;
     const budgetWidth = Math.min(68, slot * .72);
@@ -1322,13 +1355,13 @@
       const budget = budgetIsBlank ? null : budgetByYear.get(year) || 0;
       const actual = actualByYear.get(year) || 0;
       const variance = budget === null ? null : budget - actual;
-      const ratio = budget ? actual / budget : 0;
-      if (budget !== null) {
-        ratios.push({
+      const costPerKg = costPerKgByYear.get(year);
+      if (costPerKg !== null && costPerKg !== undefined) {
+        costPerKgPoints.push({
           x: center,
-          y: top + ratioBandHeight - Math.min(ratio, 1.5) / 1.5 * ratioBandHeight,
-          ratio,
-          variance,
+          y: top + costPerKgBandHeight -
+            ((costPerKg - costPerKgAxisMin) / costPerKgAxisRange) * costPerKgBandHeight,
+          value: costPerKg,
           year
         });
       }
@@ -1376,22 +1409,31 @@
       svg.append(label);
     });
 
-    const ratioPath = ratios.map((point, index) =>
+    const costPerKgPath = costPerKgPoints.map((point, index) =>
       `${index ? "L" : "M"}${point.x},${point.y}`
     ).join(" ");
     svg.append(svgElement("path", {
-      d: ratioPath,
+      d: costPerKgPath,
       fill: "none",
       stroke: "#e3ad00",
       "stroke-width": 2
     }));
-    for (const point of ratios) {
-      svg.append(svgElement("circle", {
+    for (const point of costPerKgPoints) {
+      const circle = svgElement("circle", {
         cx: point.x, cy: point.y, r: 3, fill: "#e3ad00"
-      }));
+      });
+      addTooltip(
+        circle,
+        state.language === "zh"
+          ? `${point.year}年实际成本 / kg`
+          : `${point.year} Actual Cost / kg`,
+        point.value,
+        value => `${currencyPrefix()}${Number(value).toFixed(4)} / kg`
+      );
+      svg.append(circle);
       appendDataLabel(svg, {
         x: point.x, y: point.y - 7, "text-anchor": "middle", class: "svg-value"
-      }, point.ratio, point.ratio.toFixed(2));
+      }, point.value, point.value.toFixed(2));
     }
     addAxisTitles(svg, width, height, "年份");
   }
@@ -1773,8 +1815,8 @@
           "stroke-width": 1.2,
           class: "svg-point"
         });
-            addTooltip(circle, `${point.row.label} · ${item.label}`, point.value,
-              options.formatTooltip || (value => numberFormat.format(value)));
+        addTooltip(circle, `${point.row.label} · ${item.label}`, point.value,
+          options.formatTooltip || (value => numberFormat.format(value)));
         svg.append(circle);
         if (seriesIndex === columnCount && (rows.length <= 14 || index % 3 === 0 || index === rows.length - 1)) {
           const label = String(point.row.axisLabel || point.row.label);
@@ -2463,7 +2505,7 @@
         { key: "production", label: "生产量 (t)", color: "#8d78d4" },
         { key: "costPerTon", label: "维护成本 / 生产吨", color: "#edb743" }
       ],
-      "月度生产量与单位生产量维护成本",
+      "生产量与单位生产量维护成本",
       { indexed: true }
     );
   }
