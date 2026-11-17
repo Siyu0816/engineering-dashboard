@@ -52,13 +52,6 @@
           </div>
         </section>
         <section class="nav-group">
-          <button class="nav-group-toggle" type="button" data-nav-group="working-time" aria-expanded="false"><span class="nav-icon">◷</span><span class="nav-group-label">Working Time Analytics</span><span class="nav-chevron">⌄</span></button>
-          <div class="nav-submenu" data-nav-submenu="working-time" hidden>
-            <button class="nav-item" type="button" data-view="overviewWT">Overview-WT</button>
-            <button class="nav-item" type="button" data-view="detailsWT">Details-WT</button>
-          </div>
-        </section>
-        <section class="nav-group">
           <button class="nav-group-toggle" type="button" data-nav-group="energy" aria-expanded="false"><span class="nav-icon">⚛</span><span class="nav-group-label">Energy Dashboard</span><span class="nav-chevron">⌄</span></button>
           <div class="nav-submenu" data-nav-submenu="energy" hidden>
             <button class="nav-item" type="button" data-view="energy">Energy</button>
@@ -102,7 +95,6 @@
         <label class="filter-control"><span>工单类型</span><select id="type-filter"></select></label>
         <label class="filter-control"><span>成本要素</span><select id="cost-element-filter"></select></label>
         <label class="filter-control"><span>订单类型</span><select id="order-type-filter"></select></label>
-        <label id="equipment-filter-control" class="filter-control" hidden><span>设备名称</span><select id="equipment-filter"></select></label>
         <div id="selection-chip" class="selection-chip" hidden></div>
       </section>
 
@@ -142,7 +134,7 @@
           <div class="home-copy">
             <p class="eyebrow">ENGINEERING DEPARTMENT OPERATIONS</p>
             <h2>Engineering Department Operations Center</h2>
-            <p>维护、工时、投资、可靠性与能源运营总览</p>
+            <p>维护、投资、可靠性与能源运营总览</p>
           </div>
           <div class="home-mark" aria-hidden="true">EOC</div>
         </article>
@@ -221,36 +213,6 @@
             <header class="card-header"><div><h2>合同明细</h2></div></header>
             <div id="contract-table" class="table-wrap"></div>
           </article>
-        </div>
-      </section>
-
-      <section id="view-overviewWT" class="view-panel" hidden>
-        <div class="section-summary"><h2>工时与外协总览</h2><p>以本地可用的工单成本、能源产量和重量数据展示外协成本及单位产量成本；本地工作簿不含工时字段。</p></div>
-        <div class="kpi-grid">
-          <article class="kpi-card accent-teal"><div class="kpi-label">维护实际成本 <span>ACTUAL COST</span></div><div id="wt-actual" class="kpi-value">—</div><div class="kpi-foot">按当前筛选汇总</div></article>
-          <article class="kpi-card accent-blue"><div class="kpi-label">外部服务与材料 <span>EXTERNAL</span></div><div id="wt-external" class="kpi-value">—</div><div class="kpi-foot">External Service + Material</div></article>
-          <article class="kpi-card accent-gold"><div class="kpi-label">工单数 <span>WORK ORDERS</span></div><div id="wt-orders" class="kpi-value">—</div><div class="kpi-foot">去重订单编号</div></article>
-          <article class="kpi-card accent-violet"><div class="kpi-label">生产重量 <span>PRODUCTION WEIGHT</span></div><div id="wt-weight" class="kpi-value">—</div><div class="kpi-foot">Relationship.xlsx Weight</div></article>
-        </div>
-        <div class="chart-grid">
-          <article class="card chart-card"><header class="card-header"><div><h2>区域外部成本</h2><p>External service and material by scope</p></div></header><div id="wt-scope-chart" class="chart chart-tall"></div></article>
-          <article class="card chart-card"><header class="card-header"><div><h2>月度维护成本</h2><p>Actual maintenance cost by month</p></div></header><div id="wt-trend-chart" class="chart chart-tall"></div></article>
-          <article class="card chart-card full-card"><header class="card-header"><div><h2>月度生产量与实际成本 / 吨</h2><p>Production volume and maintenance actual cost per production ton</p></div></header><div id="wt-productivity-chart" class="chart chart-medium"></div></article>
-        </div>
-      </section>
-
-      <section id="view-detailsWT" class="view-panel" hidden>
-        <div class="section-summary"><h2>设备成本明细</h2><p>将成本中心与设备台账关联，按设备查看维护成本。源文件未提供实际工时，因此不推算工时。</p></div>
-        <div class="kpi-grid">
-          <article class="kpi-card accent-teal"><div class="kpi-label">设备台账 <span>EQUIPMENT</span></div><div id="equipment-count" class="kpi-value">—</div><div class="kpi-foot">Relationship.xlsx · Equipment IH08</div></article>
-          <article class="kpi-card accent-blue"><div class="kpi-label">有成本设备 <span>WITH COST</span></div><div id="equipment-with-cost" class="kpi-value">—</div><div class="kpi-foot">与维护工单按设备编号匹配</div></article>
-          <article class="kpi-card accent-gold"><div class="kpi-label">成本未匹配设备 <span>UNMATCHED</span></div><div id="equipment-unmatched" class="kpi-value">—</div><div class="kpi-foot">工单设备不在当前台账内</div></article>
-          <article class="kpi-card accent-violet"><div class="kpi-label">实际维护成本 <span>ACTUAL COST</span></div><div id="equipment-actual" class="kpi-value">—</div><div class="kpi-foot">按设备关联金额汇总</div></article>
-        </div>
-        <div class="chart-grid">
-          <article class="card chart-card"><header class="card-header"><div><h2>设备维护成本排名</h2><p>Top equipment by actual maintenance cost</p></div></header><div id="equipment-cost-chart" class="chart chart-tall"></div></article>
-          <article class="card chart-card"><header class="card-header"><div><h2>设备成本按区域</h2><p>Actual cost by equipment area</p></div></header><div id="equipment-area-chart" class="chart chart-tall"></div></article>
-          <article class="card chart-card full-card"><header class="card-header"><div><h2>设备成本清单</h2><p>Equipment register joined to work order cost</p></div></header><div id="equipment-table" class="table-wrap"></div></article>
         </div>
       </section>
 

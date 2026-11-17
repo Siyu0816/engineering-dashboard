@@ -21,7 +21,6 @@
     ["成本概览", "Cost Overview"],
     ["维护看板", "Maintenance Dashboard"],
     ["CAPEX绩效", "CAPEX Performance"],
-    ["工时分析", "Working Time Analytics"],
     ["能源看板", "Energy Dashboard"],
     ["筛选器", "Slicers"],
     ["成本总览", "Overview-MC"],
@@ -51,28 +50,22 @@
     ["各项目未收货、已收货、采购申请与占用", "UnGR, GR, PR and Occupied (UnGR & GR & PR)"],
     ["按项目", "by Project"],
     ["占用", "Occupied"],
-    ["工时总览", "Overview-WT"],
-    ["设备成本明细", "Details-WT"],
     ["能源", "Energy"],
     ["维护成本总览", "Maintenance Cost Overview"],
     ["区域维护成本", "Maintenance Cost by Area"],
     ["维护成本明细", "Maintenance Cost Details"],
     ["维护合同", "Maintenance Contracts"],
-    ["工时与外协总览", "Working Time Overview"],
-    ["设备成本明细", "Equipment Cost Details"],
     ["CAPEX项目计划", "CAPEX Plan"],
     ["设备故障分析", "Equipment Breakdown"],
     ["工单执行", "Work Order Performance"],
     ["每日工单", "Daily Work Orders"],
     ["能源使用", "Energy"],
     ["工程部运营中心", "Engineering Department Operations Center"],
-    ["维护、工时、投资、可靠性与能源运营总览", "Maintenance, working time, investment, reliability and energy overview"],
+    ["维护、投资、可靠性与能源运营总览", "Maintenance, investment, reliability and energy overview"],
     ["维护成本、预算执行和工单构成", "Maintenance cost, budget performance and work-order mix"],
     ["区域和成本中心的维护支出表现", "Maintenance costs by area and cost center"],
     ["按期间、工单类型和成本要素分析实际支出", "Actual cost by period, work-order type and cost element"],
     ["维护合同状态和年度计划金额", "Maintenance contract status and annual planned amount"],
-    ["维护成本、外协成本与生产量分析", "Maintenance cost, external cost and production volume"],
-    ["设备台账与维护成本明细", "Equipment register and maintenance cost details"],
     ["CAPEX项目预算、实际与承诺", "CAPEX budget, actual and committed amounts"],
     ["CAPEX计划与采购执行", "CAPEX plan and purchasing"],
     ["已收货金额、未交付累计金额、累计收货金额与预算", "Act GR, YTD, YTD GR and Budget"],
@@ -305,7 +298,7 @@
     ["实际成本 / kg", "Actual Cost / kg"],
     ["总成本中心", "Cost Centers"],
     ["查询无匹配记录", "No matching records"],
-    ["维护、工时、投资、可靠性与能源运营总览", "Maintenance, working time, investment, reliability and energy overview"],
+    ["维护、投资、可靠性与能源运营总览", "Maintenance, investment, reliability and energy overview"],
     ["打开菜单", "Open menu"],
     ["关闭菜单", "Close menu"],
     ["返回", "Back"],
@@ -369,16 +362,8 @@
     ["选择模块查看数据与明细", "Select a report page"],
     ["最多显示前 300 条当前筛选记录", "Filtered records"],
     ["合同清单记录", "Contract records"],
-    ["以本地可用的工单成本、能源产量和重量数据展示外协成本及单位产量成本；本地工作簿不含工时字段。", "External costs and unit production costs use available work-order costs, energy production and weight data; local workbooks do not contain working hours."],
     ["按当前筛选汇总", "Current filter total"],
     ["去重订单编号", "Distinct work orders"],
-    ["区域外部成本", "External Cost by Area"],
-    ["月度维护成本", "Monthly Maintenance Cost"],
-    ["月度生产量与单位产量成本", "Monthly Production and Unit Cost"],
-    ["将成本中心与设备台账关联，按设备查看维护成本。源文件未提供实际工时，因此不推算工时。", "Maintenance cost by equipment matched to the register. Actual labor hours are not available in the source files."],
-    ["与维护工单按设备编号匹配", "Matched to work orders by equipment"],
-    ["工单设备不在当前台账内", "Work-order equipment not in register"],
-    ["按设备关联金额汇总", "Cost assigned by equipment"],
     ["项目预算、实际、承诺及可用余额来自 CJ74 与 CJE0 工作簿。", "Project budget, actual, commitments and available balance from CJ74 and CJE0."],
     ["CJE0 项目总预算", "CJE0 total project budget"],
     ["CJE0 项目累计实际", "CJE0 cumulative project actual"],
@@ -475,7 +460,7 @@
     home: {
       title: "Engineering Department Operations Center",
       breadcrumb: "首页",
-      description: "维护、工时、投资、可靠性与能源运营总览"
+      description: "维护、投资、可靠性与能源运营总览"
     },
     overview: {
       title: "Maintenance Cost Overview",
@@ -496,16 +481,6 @@
       title: "Contract Follow Up",
       breadcrumb: "Contract-MC",
       description: ""
-    },
-    overviewWT: {
-      title: "Working Time Overview",
-      breadcrumb: "Overview-WT",
-      description: "维护成本、外协成本与生产量分析"
-    },
-    detailsWT: {
-      title: "Equipment Cost Details",
-      breadcrumb: "Details-WT",
-      description: "设备台账与维护成本明细"
     },
     capex: {
       title: "CAPEX Overview",
@@ -543,8 +518,6 @@
     ["area", "区域维护成本", "Area-MC", "⌖"],
     ["details", "维护成本明细", "Others-MC", "▤"],
     ["contracts", "维护合同", "Contract-MC", "▧"],
-    ["overviewWT", "工时与外协总览", "Overview-WT", "◷"],
-    ["detailsWT", "设备成本明细", "Details-WT", "⚙"],
     ["capex", "CAPEX 总览", "CAPEX Overview", "▥"],
     ["capexPlan", "CAPEX项目计划", "CAPEX GR Plan", "▦"],
     ["breakdown", "设备故障分析", "Breakdown", "⌁"],
@@ -1671,70 +1644,6 @@
     svg.style.height = `${Math.max(160, container.clientHeight - legend.offsetHeight - 8)}px`;
   }
 
-  function renderTrend(containerId) {
-    const container = document.getElementById(containerId);
-    const rows = filteredActual().reduce((map, row) => {
-      const key = `${row.year}-${String(row.month).padStart(2, "0")}`;
-      map.set(key, (map.get(key) || 0) + row.actual);
-      return map;
-    }, new Map());
-    const values = [...rows].sort(([a], [b]) => a.localeCompare(b));
-    if (!values.length) return drawEmpty(container);
-
-    const width = Math.max(container.clientWidth - 14, 300);
-    const height = Math.max(container.clientHeight - 22, 175);
-    const left = 70;
-    const right = 12;
-    const top = 18;
-    const bottom = 34;
-    const plotHeight = height - top - bottom;
-    const plotWidth = width - left - right;
-    const amount = values.map(item => item[1]);
-    const min = Math.min(0, ...amount);
-    const max = Math.max(1, ...amount);
-    const range = max - min || 1;
-    const svg = createSvg(container, width, height, "月度实际成本趋势");
-    for (let i = 0; i <= 3; i++) {
-      const y = top + (plotHeight * i) / 3;
-      addGrid(svg, left, y, width - right);
-      svg.append(svgElement("text", {
-        x: left - 6, y: y + 3, "text-anchor": "end", class: "svg-value"
-      }, compactMoney(max - (range * i) / 3)));
-    }
-
-    const points = values.map(([, value], index) => {
-      const x = left + (values.length === 1 ? plotWidth / 2 : (plotWidth * index) / (values.length - 1));
-      return [x, top + plotHeight - ((value - min) / range) * plotHeight];
-    });
-    const path = points.map(([x, y], index) => `${index ? "L" : "M"}${x},${y}`).join(" ");
-    svg.append(svgElement("path", {
-      d: path,
-      fill: "none",
-      stroke: "#5149ef",
-      "stroke-width": 2.5,
-      "stroke-linecap": "round",
-      "stroke-linejoin": "round"
-    }));
-
-    points.forEach(([x, y], index) => {
-      const [label, value] = values[index];
-      const point = svgElement("circle", {
-        cx: x, cy: y, r: values.length < 15 ? 3.5 : 2.5,
-        fill: "#5149ef",
-        stroke: "#fff",
-        "stroke-width": 1.5,
-        class: "svg-point"
-      });
-      addTooltip(point, label, value);
-      svg.append(point);
-      if (values.length <= 14 || index % 3 === 0 || index === values.length - 1) {
-        svg.append(svgElement("text", {
-          x, y: height - 9, "text-anchor": "middle"
-        }, label.slice(2)));
-      }
-    });
-  }
-
   function renderSeriesChart(containerId, rows, series, label, options = {}) {
     const container = document.getElementById(containerId);
     if (!rows.length) return drawEmpty(container);
@@ -2446,70 +2355,6 @@
     }
   }
 
-  function renderWorkingTimeOverview() {
-    const actualRows = filteredActual();
-    const allCost = Math.abs(sum(actualRows, "actual"));
-    const externalRows = actualRows.filter(row =>
-      row.costElement === "External Service" || row.costElement === "External Material"
-    );
-    const external = Math.abs(sum(externalRows, "actual"));
-    const orders = new Set(
-      filteredWorkOrders().map(row => row.order).filter(Boolean)
-    );
-    const weight = data.weights
-      .filter(row => matchesSelection(state.year, row.year))
-      .reduce((total, row) => total + row.weight, 0);
-    setKpiText("wt-actual", compactMoney(allCost));
-    setKpiText("wt-external", compactMoney(external));
-    setKpiText("wt-orders", numberFormat.format(orders.size));
-    setKpiText("wt-weight", `${numberFormat.format(Math.round(weight))} t`);
-
-    renderBars(
-      "wt-scope-chart",
-      totalsByDimension(externalRows, "scope").filter(item => item.label !== "Unmapped"),
-      "scope",
-      { color: "#6963d9", label: "外部服务与材料 by scope" }
-    );
-    renderTrend("wt-trend-chart");
-
-    const actualByMonth = new Map(
-      groupedPeriod(filteredActual(), ["year", "month"], "actual")
-        .map(row => [`${row.year}-${String(row.month).padStart(2, "0")}`, row.value])
-    );
-    const volumeByMonth = new Map(
-      data.production
-        .filter(row =>
-          matchesSelection(state.year, row.year) &&
-          matchesSelection(state.month, row.month)
-        )
-        .map(row => [`${row.year}-${String(row.month).padStart(2, "0")}`, row.total])
-    );
-    const productivity = [...new Set([...actualByMonth.keys(), ...volumeByMonth.keys()])]
-      .sort()
-      .map(label => {
-        const [year, month] = label.split("-");
-        const production = volumeByMonth.get(label) || 0;
-        return {
-          year,
-          month,
-          label,
-          axisLabel: month,
-          production,
-          costPerTon: production ? (actualByMonth.get(label) || 0) / production : 0
-        };
-      });
-    renderSeriesChart(
-      "wt-productivity-chart",
-      productivity,
-      [
-        { key: "production", label: "生产量 (t)", color: "#8d78d4" },
-        { key: "costPerTon", label: "维护成本 / 生产吨", color: "#edb743" }
-      ],
-      "生产量与单位生产量维护成本",
-      { indexed: true }
-    );
-  }
-
   function getEquipmentCostRows() {
     const equipment = new Map(data.equipment.map(row => [row.equipment, row]));
     const totals = new Map();
@@ -2538,47 +2383,6 @@
         orderCount: item.orders.size
       };
     }).sort((a, b) => Math.abs(b.actual) - Math.abs(a.actual));
-  }
-
-  function renderEquipmentDetails() {
-    const rows = getEquipmentCostRows();
-    const matched = rows.filter(row => row.description !== "设备台账中未找到");
-    const unmatched = rows.filter(row => row.description === "设备台账中未找到");
-    setKpiText("equipment-count", numberFormat.format(data.equipment.length));
-    setKpiText("equipment-with-cost", numberFormat.format(matched.length));
-    setKpiText("equipment-unmatched", numberFormat.format(unmatched.length));
-    setKpiText("equipment-actual", compactMoney(Math.abs(sum(rows, "actual"))));
-    renderBars(
-      "equipment-cost-chart",
-      rows.slice(0, 12).map(row => ({
-        label: row.description,
-        key: row.equipment,
-        value: Math.abs(row.actual)
-      })),
-      "equipment",
-      { color: "#6963d9", label: "设备维护成本排名" }
-    );
-    renderBars(
-      "equipment-area-chart",
-      totalsByDimension(
-        rows.filter(row => row.area !== "—"),
-        "area",
-        "actual"
-      ),
-      null,
-      { color: "#8d78d4", label: "设备维护成本 by area" }
-    );
-    const container = document.getElementById("equipment-table");
-    if (!rows.length) return drawEmpty(container);
-    container.replaceChildren(makeTable([
-      { key: "description", label: "设备名称" },
-      { key: "functionalLocation", label: "功能位置" },
-      { key: "area", label: "区域" },
-      { key: "scope", label: "Scope" },
-      { key: "costCenter", label: "成本中心" },
-      { key: "orderCount", label: "工单数", numeric: true },
-      { key: "actual", label: "实际成本", numeric: true, render: fullMoney }
-    ],     rows, { clickField: "equipment" }));
   }
 
   function renderCapexGauge() {
@@ -3920,7 +3724,7 @@
     document.querySelector(".period-chip").hidden = ["capexPlan", "home"].includes(state.view);
     refreshMonthLabels();
     refreshScopeLabels();
-    for (const field of ["year", "month", "scope", "costType", "costElement", "orderType", "equipment"]) {
+    for (const field of ["year", "month", "scope", "costType", "costElement", "orderType"]) {
       syncMultiPicker(field);
     }
     updateSelectionChip();
@@ -3934,9 +3738,9 @@
         document.getElementById("page-description").hidden = !details.description;
       }
     }
-    const maintenanceView = ["home", "overview", "area", "details", "overviewWT", "detailsWT"].includes(state.view);
+    const maintenanceView = ["home", "overview", "area", "details"].includes(state.view);
     const dateFilterView = [
-      "home", "overview", "area", "details", "overviewWT", "detailsWT",
+      "home", "overview", "area", "details",
       "breakdown", "workOrder", "dailyWO", "energy"
     ].includes(state.view);
     document.getElementById("year-filter").disabled = !dateFilterView;
@@ -3945,15 +3749,13 @@
     document.getElementById("type-filter").disabled = !maintenanceView;
     document.getElementById("cost-element-filter").disabled = !maintenanceView;
     document.getElementById("order-type-filter").disabled = !maintenanceView;
-    document.getElementById("equipment-filter-control").hidden = state.view !== "detailsWT";
     const filterSelectIds = {
       year: "year-filter",
       month: "month-filter",
       scope: "scope-filter",
       costType: "type-filter",
       costElement: "cost-element-filter",
-      orderType: "order-type-filter",
-      equipment: "equipment-filter"
+      orderType: "order-type-filter"
     };
     for (const [field, selectId] of Object.entries(filterSelectIds)) {
       const select = document.getElementById(selectId);
@@ -4004,8 +3806,6 @@
     if (state.view === "area") renderAreaCharts();
     if (state.view === "details") renderDetails();
     if (state.view === "contracts") renderContracts();
-    if (state.view === "overviewWT") renderWorkingTimeOverview();
-    if (state.view === "detailsWT") renderEquipmentDetails();
     if (state.view === "capex") renderCapex();
     if (state.view === "capexPlan") renderCapexPlan();
     if (state.view === "breakdown") renderBreakdown();
@@ -4080,13 +3880,6 @@
       sortedUnique(data.actual.map(row => row.orderType)),
       "全部订单类型"
     );
-    populateSelect(
-      document.getElementById("equipment-filter"),
-      data.equipment
-        .map(row => ({ value: row.equipment, label: row.description }))
-        .sort((a, b) => a.label.localeCompare(b.label, "zh-CN")),
-      "全部设备"
-    );
     const capexPlanYears = (data.capex.plan?.years || []).map(String);
     state.capexPlanYear = capexPlanYears.includes("2026")
       ? "2026"
@@ -4106,7 +3899,6 @@
     mountMultiPicker(document.getElementById("type-filter"), "costType");
     mountMultiPicker(document.getElementById("cost-element-filter"), "costElement");
     mountMultiPicker(document.getElementById("order-type-filter"), "orderType");
-    mountMultiPicker(document.getElementById("equipment-filter"), "equipment");
 
     document.querySelectorAll("[data-detail-action]").forEach(button => {
       button.addEventListener("click", () => {

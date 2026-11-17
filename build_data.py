@@ -835,12 +835,6 @@ def main():
         ],
         numeric=("Actual costs", "Planned costs"),
     )
-    weight_frame = pd.read_excel(SOURCE_DIR / "Relationship.XLSX", sheet_name="Weight")
-    weights = [
-        {"year": int(row["Year"]), "weight": number(row["Weight (t)"])}
-        for _, row in weight_frame.iterrows()
-        if pd.notna(row.get("Year"))
-    ]
     equipment = read_equipment(relationships)
     equipment_names = {
         row["equipment"]: row["description"]
@@ -895,7 +889,6 @@ def main():
         "ungrOrders": read_work_order_purchases(),
         "energy": energy,
         "production": production,
-        "weights": weights,
         "capex": capex,
         "outsourcing": outsourcing,
     }
