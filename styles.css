@@ -442,7 +442,45 @@ body.menu-open .menu-backdrop {
 }
 
 .topbar-right {
+  display: flex;
+  align-items: center;
   gap: 16px;
+}
+
+.currency-control {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.currency-toggle {
+  min-width: 48px;
+  min-height: 34px;
+  padding: 6px 10px;
+  border: 1px solid #d6d5e8;
+  border-radius: 8px;
+  background: #f3f2fb;
+  color: #4f4d9b;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 700;
+  transition: background .16s ease, border-color .16s ease;
+}
+
+.currency-toggle:hover {
+  border-color: #aaa7d2;
+  background: #ecebf8;
+}
+
+.currency-toggle:focus-visible {
+  outline: 2px solid #7773ce;
+  outline-offset: 2px;
+}
+
+.currency-rate-label {
+  color: var(--muted);
+  font-size: 10px;
+  white-space: nowrap;
 }
 
 .snapshot-label {
@@ -540,6 +578,7 @@ h1 {
 
 .filter-bar {
   display: flex;
+  flex-wrap: wrap;
   min-height: 62px;
   align-items: center;
   gap: 14px;
@@ -554,6 +593,7 @@ h1 {
   position: relative;
   display: flex;
   min-width: 138px;
+  flex: 1 1 138px;
   flex-direction: column;
   gap: 2px;
   color: var(--muted);
@@ -865,10 +905,25 @@ h1 {
 
 .capex-plan-segment-label-act {
   fill: #fff !important;
+  stroke: #171276;
+  stroke-width: 1px;
+  paint-order: stroke;
+  stroke-linejoin: round;
+}
+
+.capex-plan-total-label {
+  stroke: #fff;
+  stroke-linejoin: round;
+  stroke-width: 3px;
+  paint-order: stroke;
 }
 
 .capex-plan-segment-label-ytd {
   fill: #50516c !important;
+  stroke: #cbd2ec;
+  stroke-width: 1px;
+  paint-order: stroke;
+  stroke-linejoin: round;
 }
 
 .capex-plan-gauge-card {
@@ -1435,6 +1490,28 @@ h1 {
   font-size: 10px;
 }
 
+.svg-chart .svg-value {
+  font-weight: 650;
+  paint-order: stroke;
+  stroke: #fff;
+  stroke-linejoin: round;
+  stroke-width: 3px;
+}
+
+.svg-chart .svg-value:not([fill]) {
+  fill: #46506a;
+}
+
+.svg-chart .svg-category {
+  font-size: 9px;
+}
+
+.svg-chart .svg-axis-title {
+  fill: #5b6277;
+  font-size: 9px;
+  font-weight: 600;
+}
+
 .svg-grid-line {
   stroke: #e9eaf2;
   stroke-width: 1;
@@ -1752,6 +1829,9 @@ h1 {
 @media (max-width: 520px) {
   .breadcrumb span:first-child { display: none; }
   .topbar-right { gap: 8px; }
+  .currency-control { gap: 5px; }
+  .currency-rate-label { font-size: 9px; }
+  .currency-toggle { min-width: 42px; min-height: 32px; padding: 5px 7px; }
   .snapshot-label { font-size: 0; }
   .snapshot-dot { width: 8px; height: 8px; }
   .page-heading { align-items: flex-start; flex-direction: column; gap: 9px; }

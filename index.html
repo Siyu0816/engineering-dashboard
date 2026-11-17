@@ -75,6 +75,10 @@
         </button>
         <div class="breadcrumb"><span>Engineering Department Operations Center</span><span class="crumb-separator">/</span><strong id="breadcrumb-current">成本概览</strong></div>
         <div class="topbar-right">
+          <div class="currency-control">
+            <button id="currency-toggle" class="currency-toggle" type="button" aria-label="切换显示币种，当前为 CNY" title="切换显示币种，当前为 CNY">CNY</button>
+            <span id="currency-rate-label" class="currency-rate-label" aria-live="polite">汇率：1 CNY = 0.114 CHF</span>
+          </div>
           <button id="language-toggle" class="reset-button" type="button" aria-label="切换语言">English</button>
         </div>
       </header>
@@ -96,13 +100,15 @@
         <label class="filter-control"><span>月份</span><select id="month-filter"></select></label>
         <label class="filter-control"><span>区域</span><select id="scope-filter"></select></label>
         <label class="filter-control"><span>工单类型</span><select id="type-filter"></select></label>
+        <label class="filter-control"><span>成本要素</span><select id="cost-element-filter"></select></label>
+        <label class="filter-control"><span>订单类型</span><select id="order-type-filter"></select></label>
         <label id="equipment-filter-control" class="filter-control" hidden><span>设备名称</span><select id="equipment-filter"></select></label>
         <div id="selection-chip" class="selection-chip" hidden></div>
       </section>
 
       <section id="view-overview" class="view-panel" hidden>
         <div class="kpi-grid overview-kpis">
-          <article class="kpi-card accent-teal"><div class="kpi-label">预算 <span>BUDGET</span></div><div id="kpi-budget" class="kpi-value">—</div><div class="kpi-foot">BU 年度预算</div></article>
+          <article class="kpi-card accent-teal"><div class="kpi-label">预算 <span>BUDGET</span></div><div id="kpi-budget" class="kpi-value">—</div><div class="kpi-foot">所选期间预算</div></article>
           <article class="kpi-card accent-blue"><div class="kpi-label">实际成本 <span>ACTUAL COST</span></div><div id="kpi-actual" class="kpi-value">—</div><div class="kpi-foot">工单实际发生额</div></article>
           <article class="kpi-card accent-gold"><div class="kpi-label">预算差额 <span>VARIANCE</span></div><div id="kpi-variance" class="kpi-value">—</div><div id="kpi-variance-foot" class="kpi-foot">预算 − 实际</div></article>
           <article class="kpi-card accent-violet"><div class="kpi-label">PM</div><div id="kpi-pm" class="kpi-value">—</div></article>
@@ -113,7 +119,7 @@
 
         <div class="chart-grid overview-grid">
           <article class="card chart-card annual-card">
-            <header class="card-header"><div><h2>年度预算与实际成本</h2></div><span class="chart-unit">CNY</span></header>
+            <header class="card-header"><div><h2>年度预算与实际成本</h2></div><span id="annual-chart-unit" class="chart-unit">CNY</span></header>
             <div id="annual-chart" class="chart chart-tall"></div>
           </article>
           <article class="card chart-card">

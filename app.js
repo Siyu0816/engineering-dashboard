@@ -117,6 +117,8 @@
     ["预算与实际成本", "Budget and Actual Cost"],
     ["年份", "Year"],
     ["月份", "Month"],
+    ["全部成本要素", "All Cost Elements"],
+    ["全部订单类型", "All Order Types"],
     ["成本要素", "Cost Element"],
     ["工单类型", "Order Type"],
     ["CNY", "CNY"],
@@ -207,7 +209,7 @@
     ["按设备编号去重", "Distinct equipment"],
     ["按 Order(IO) 去重", "Distinct Order(IO)"],
     ["工单实际发生额", "Actual work-order cost"],
-    ["BU 年度预算", "Annual BU budget"],
+    ["所选期间预算", "Budget for selected period"],
     ["预算 − 实际", "Budget − Actual"],
     ["数据期间", "Reporting Period"],
     ["成本概览", "Cost Overview"],
@@ -454,11 +456,14 @@
   const state = {
     view: "home",
     language: "zh",
+    currency: "CNY",
     year: ["2026"],
     capexPlanYear: "2026",
     month: [],
     scope: [],
     costType: [],
+    costElement: [],
+    orderType: [],
     equipment: [],
     selection: null,
     contractQuery: "",
@@ -564,6 +569,20 @@
     }
     if (text !== undefined) node.textContent = text;
     return node;
+  }
+
+  function appendDataLabel(svg, attributes, value, text) {
+    const label = svgElement("text", attributes, text);
+    if (state.view === "overview" || state.view === "area") {
+      const numericValue = Number(value);
+      label.style.fill = numericValue > 0
+        ? "#24945a"
+        : numericValue < 0
+          ? "#df4658"
+          : "#46506a";
+    }
+    svg.append(label);
+    return label;
   }
 
   function applyLanguage() {
@@ -723,39 +742,54 @@
     return rows.reduce((total, row) => total + (Number(row[field]) || 0), 0);
   }
 
+  function convertCurrency(value, sourceCurrency = data.currency || "CNY") {
+    const rates = data.capex.plan.exchangeRates;
+    const sourceRate = Number(rates[sourceCurrency]);
+    const targetRate = Number(rates[state.currency]);
+    if (!Number.isFinite(sourceRate) || sourceRate <= 0 ||
+        !Number.isFinite(targetRate) || targetRate <= 0) {
+      throw new Error(`Missing exchange rate for ${sourceCurrency} to ${state.currency}.`);
+    }
+    return (Number(value) || 0) / sourceRate * targetRate;
+  }
+
+  function currencyPrefix() {
+    return state.currency === "CNY" ? "¥" : `${state.currency} `;
+  }
+
   function compactMoney(value) {
-    const amount = Number(value) || 0;
+    const amount = convertCurrency(value);
     const absolute = Math.abs(amount);
-    if (absolute === 0) return "¥0K";
+    if (absolute === 0) return `${currencyPrefix()}0K`;
     const digits = absolute < 10000 ? 1 : 0;
     const formatted = new Intl.NumberFormat(
       state.language === "zh" ? "zh-CN" : "en-US",
       { minimumFractionDigits: digits, maximumFractionDigits: digits }
     ).format(amount / 1000);
-    return `¥${formatted}K`;
+    return `${currencyPrefix()}${formatted}K`;
   }
 
   function axisMillionsMoney(value) {
     const formatted = new Intl.NumberFormat(
       state.language === "zh" ? "zh-CN" : "en-US",
       { maximumFractionDigits: 1 }
-    ).format((Number(value) || 0) / 1_000_000);
-    return `¥${formatted}M`;
+    ).format(convertCurrency(value) / 1_000_000);
+    return `${currencyPrefix()}${formatted}M`;
   }
 
   function capexChartMoney(value) {
-    return `${((Number(value) || 0) / 1_000_000).toFixed(2)}M`;
+    return `${(convertCurrency(value) / 1_000_000).toFixed(2)}M`;
   }
 
   function capexOverviewMoney(value) {
-    const amount = Number(value) || 0;
+    const amount = convertCurrency(value);
     return Math.abs(amount) >= 1_000_000
-      ? `${(amount / 1_000_000).toFixed(2)}M`
-      : `${Math.round(amount / 1000)}K`;
+      ? `${currencyPrefix()}${(amount / 1_000_000).toFixed(2)}M`
+      : `${currencyPrefix()}${Math.round(amount / 1000)}K`;
   }
 
   function capexOverviewAxisMoney(value) {
-    return `${((Number(value) || 0) / 1_000_000).toFixed(1)}M`;
+    return `${currencyPrefix()}${(convertCurrency(value) / 1_000_000).toFixed(1)}M`;
   }
 
   function capexOverviewPercentage(value) {
@@ -763,25 +797,25 @@
   }
 
   function kpiMoney(value) {
-    return `¥${numberFormat.format(Math.round((Number(value) || 0) / 1000))}K`;
+    return `${currencyPrefix()}${numberFormat.format(Math.round(convertCurrency(value) / 1000))}K`;
   }
 
   function fullMoney(value) {
-    return `¥${preciseNumberFormat.format(Number(value) || 0)}`;
+    return `${currencyPrefix()}${preciseNumberFormat.format(convertCurrency(value))}`;
   }
 
   function fullSourceCurrency(value, currency) {
-    const formatted = preciseNumberFormat.format(Number(value) || 0);
-    return currency === "CNY" ? `¥${formatted}` : `${formatted} ${currency || ""}`.trim();
+    const formatted = preciseNumberFormat.format(convertCurrency(value, currency || "CNY"));
+    return `${currencyPrefix()}${formatted}`;
   }
 
   function compactSourceCurrency(value, currency) {
-    const amount = Number(value) || 0;
+    const amount = convertCurrency(value, currency || "CNY");
     const absolute = Math.abs(amount);
     const compact = absolute === 0
       ? "0K"
       : `${(amount / 1000).toFixed(absolute < 10000 ? 1 : 0)}K`;
-    return currency === "CNY" ? `¥${compact}` : `${compact} ${currency || ""}`.trim();
+    return `${currencyPrefix()}${compact}`;
   }
 
   function percentage(value) {
@@ -928,6 +962,8 @@
     if (!ignoreMonth && !matchesSelection(state.month, row.month)) return false;
     if (!matchesSelection(state.scope, row.scope)) return false;
     if (!matchesSelection(state.costType, row.costType)) return false;
+    if (!matchesSelection(state.costElement, row.costElement)) return false;
+    if (!matchesSelection(state.orderType, row.orderType)) return false;
     if (
       state.selection &&
       state.selection.field !== excludedSelectionField &&
@@ -943,10 +979,32 @@
     return data.actual.filter(row => passesFilters(row, excludedSelectionField, ignoreMonth, ignoreYear));
   }
 
-  function filteredBudget(excludedSelectionField, ignoreYear = false) {
-    return data.budget.filter(row => {
+  const orderTypeBudgetShares = {
+    PM: 0.60,
+    CM: 0.20,
+    Improvement: 0.15
+  };
+
+  function selectedOrderTypeBudgetShare() {
+    if (!state.orderType.length && !state.costType.length) return undefined;
+    const selectedTypes = new Set(
+      data.actual
+        .filter(row =>
+          matchesSelection(state.orderType, row.orderType) &&
+          matchesSelection(state.costType, row.costType)
+        )
+        .map(row => row.costType)
+        .filter(type => Object.prototype.hasOwnProperty.call(orderTypeBudgetShares, type))
+    );
+    if (selectedTypes.size !== 1) return null;
+    return orderTypeBudgetShares[[...selectedTypes][0]];
+  }
+
+  function filteredBudget(excludedSelectionField, ignoreYear = false, applyOrderTypeShare = true) {
+    const rows = data.budget.filter(row => {
       if (!ignoreYear && !matchesSelection(state.year, row.year)) return false;
       if (!matchesSelection(state.scope, row.scope)) return false;
+      if (!matchesSelection(state.costElement, row.costElement)) return false;
       if (
         state.selection &&
         state.selection.field !== excludedSelectionField &&
@@ -957,6 +1015,32 @@
       }
       return true;
     });
+    const share = applyOrderTypeShare ? selectedOrderTypeBudgetShare() : undefined;
+    if (share === null) return [];
+    if (share !== undefined) {
+      return rows.map(row => ({ ...row, budget: row.budget * share }));
+    }
+    return rows;
+  }
+
+  function budgetPeriodFactor(year) {
+    if (state.month.length) return state.month.length / 12;
+    const lastActualMonth = data.actual.reduce((latest, row) =>
+      String(row.year) === String(year)
+        ? Math.max(latest, Number(row.month) || 0)
+        : latest, 0);
+    return lastActualMonth ? lastActualMonth / 12 : 1;
+  }
+
+  function proratedBudgetRows(rows) {
+    return rows.map(row => ({
+      ...row,
+      budget: row.budget * budgetPeriodFactor(row.year)
+    }));
+  }
+
+  function selectedPeriodBudget(rows) {
+    return sum(proratedBudgetRows(rows), "budget");
   }
 
   function aggregate(rows, field, valueField = "actual") {
@@ -1005,6 +1089,7 @@
       costCenter: "成本中心",
       costType: "工单类型",
       costElement: "成本要素",
+      orderType: "订单类型",
       equipment: "设备",
       functionalLocation: "功能位置"
     };
@@ -1065,7 +1150,7 @@
       x: 12,
       y: height / 2,
       "text-anchor": "middle",
-      class: "svg-category",
+      class: "svg-category svg-axis-title",
       transform: `rotate(-90 12 ${height / 2})`
     }, translateText("预算与实际成本")));
     svg.append(svgElement("text", {
@@ -1086,9 +1171,9 @@
 
     const height = Math.max(container.clientHeight - 14, 180);
     const width = Math.max(container.clientWidth - 14, 280);
-    const left = 47;
+    const left = 70;
     const right = 12;
-    const top = 18;
+    const top = 26;
     const longestLabel = Math.max(...values.map(item => String(item.label).length));
     const bottom = longestLabel > 12 ? Math.min(104, Math.max(78, height * 0.32)) : 46;
     const plotHeight = height - top - bottom;
@@ -1113,9 +1198,17 @@
       }, options.formatAxis ? options.formatAxis(value) : compactMoney(value)));
     }
 
+    const dataLabelStride = Math.max(
+      1,
+      Math.ceil(values.length / Math.max(1, Math.floor(plotWidth / 72)))
+    );
+    const labelStride = Math.max(
+      1,
+      Math.ceil(values.length / Math.max(1, Math.floor(plotWidth / 62)))
+    );
     values.forEach((item, index) => {
       const center = left + (plotWidth * (index + 0.5)) / values.length;
-      const barWidth = Math.max(2, Math.min(38, (plotWidth / values.length) * 0.64));
+      const barWidth = Math.max(2, Math.min(38, (plotWidth / values.length) * 0.76));
       const valueY = top + plotHeight - ((item.value - minimum) / range) * plotHeight;
       const bar = svgElement("rect", {
         x: center - barWidth / 2,
@@ -1144,15 +1237,15 @@
         });
       }
       svg.append(bar);
-      if (values.length <= 12 || options.showAllValues) {
-        svg.append(svgElement("text", {
+      if ((values.length <= 12 || options.showAllValues) &&
+          (index % dataLabelStride === 0 || index === values.length - 1)) {
+        appendDataLabel(svg, {
           x: center,
-          y: Math.max(top + 10, valueY - 5),
+          y: Math.max(12, valueY - 16),
           "text-anchor": "middle",
           class: "svg-value"
-        }, options.formatValue ? options.formatValue(item.value, item) : compactMoney(item.value)));
+        }, item.value, options.formatValue ? options.formatValue(item.value, item) : compactMoney(item.value));
       }
-      const labelStride = Math.max(1, Math.ceil(values.length / Math.max(1, Math.floor(plotWidth / 42))));
       if (index % labelStride === 0 || index === values.length - 1) {
         const category = svgElement("text", {
           x: center,
@@ -1172,20 +1265,26 @@
     const actualByYear = new Map(
       aggregate(filteredActual(undefined, true, true), "year").map(item => [item.label, item.value])
     );
-    const budgetByYear = new Map(
-      aggregate(filteredBudget(undefined, true).filter(row => row.costElement !== "Unmapped"), "year", "budget")
-        .map(item => [item.label, item.value])
-    );
+    const budgetIsBlank = selectedOrderTypeBudgetShare() === null;
+    const budgetByYear = new Map(budgetIsBlank ? [] :
+      aggregate(
+        proratedBudgetRows(
+          filteredBudget(undefined, true).filter(row => row.costElement !== "Unmapped")
+        ),
+        "year",
+        "budget"
+      )
+        .map(item => [item.label, item.value]));
     const years = data.years.map(String);
     if (!years.length) return drawEmpty(container);
 
     const width = Math.max(container.clientWidth - 14, 300);
     const chartHeight = Math.max(container.clientHeight - 12, 190);
     const height = chartHeight;
-    const left = 55;
-    const right = 39;
-    const top = 20;
-    const bottom = 28;
+    const left = 92;
+    const right = 50;
+    const top = 26;
+    const bottom = 34;
     const plotHeight = height - top - bottom;
     const plotWidth = width - left - right;
     const ratioBandHeight = plotHeight * .28;
@@ -1205,30 +1304,35 @@
       const y = barTop + (barHeight * line) / 4;
       addGrid(svg, left, y, width - right);
       svg.append(svgElement("text", {
-        x: left - 7, y: y + 3, "text-anchor": "end"
+        x: left - 7, y: y + 3, "text-anchor": "end", class: "svg-value"
       }, axisMillionsMoney(maximum * (1 - line / 4))));
       svg.append(svgElement("text", {
-        x: width - right + 7, y: ratioY + 3, "text-anchor": "start"
+        x: width - right + 7,
+        y: ratioY + 3,
+        "text-anchor": "start",
+        class: "svg-value"
       }, ratioValue.toFixed(2)));
     }
 
     const slot = plotWidth / years.length;
-    const budgetWidth = Math.min(62, slot * .6);
-    const actualWidth = Math.min(16, slot * .18);
+    const budgetWidth = Math.min(68, slot * .72);
+    const actualWidth = Math.min(18, slot * .2);
     years.forEach((year, index) => {
       const center = left + slot * (index + .5);
-      const budget = budgetByYear.get(year) || 0;
+      const budget = budgetIsBlank ? null : budgetByYear.get(year) || 0;
       const actual = actualByYear.get(year) || 0;
-      const variance = budget - actual;
+      const variance = budget === null ? null : budget - actual;
       const ratio = budget ? actual / budget : 0;
-      ratios.push({
-        x: center,
-        y: top + ratioBandHeight - Math.min(ratio, 1.5) / 1.5 * ratioBandHeight,
-        ratio,
-        variance,
-        year
-      });
-      const budgetHeight = Math.max(0, (budget / maximum) * barHeight);
+      if (budget !== null) {
+        ratios.push({
+          x: center,
+          y: top + ratioBandHeight - Math.min(ratio, 1.5) / 1.5 * ratioBandHeight,
+          ratio,
+          variance,
+          year
+        });
+      }
+      const budgetHeight = budget === null ? 0 : Math.max(0, (budget / maximum) * barHeight);
       const actualHeight = Math.max(0, (actual / maximum) * barHeight);
       const budgetBar = svgElement("rect", {
         x: center - budgetWidth / 2,
@@ -1239,24 +1343,26 @@
         fill: "#e7e9f4",
         class: "svg-bar"
       });
-      addTooltip(budgetBar, `${year} 预算`, budget);
+      if (budget !== null) addTooltip(budgetBar, `${year} 预算`, budget);
       const actualBar = svgElement("rect", {
         x: center - actualWidth / 2,
         y: barBottom - actualHeight,
         width: actualWidth,
         height: actualHeight,
         rx: 1,
-        fill: actual > budget ? "#df4658" : "#11117a",
+        fill: budget !== null && actual > budget ? "#df4658" : "#11117a",
         class: "svg-bar"
       });
       addTooltip(actualBar, `${year} 实际`, actual);
       svg.append(budgetBar, actualBar);
-      svg.append(svgElement("text", {
-        x: center, y: Math.max(barTop + 10, barBottom - Math.max(actualHeight, budgetHeight) - 7),
-        "text-anchor": "middle",
-        class: "svg-value",
-        fill: variance < 0 ? "#df4658" : "#24945a"
-      }, `${variance < 0 ? "−" : "+"}${compactMoney(Math.abs(variance))}`));
+      if (variance !== null) {
+        appendDataLabel(svg, {
+          x: center, y: Math.max(top + 12, barBottom - Math.max(actualHeight, budgetHeight) - 16),
+          "text-anchor": "middle",
+          class: "svg-value",
+          fill: variance < 0 ? "#df4658" : "#24945a"
+        }, variance, `${variance < 0 ? "−" : "+"}${compactMoney(Math.abs(variance))}`);
+      }
       const label = svgElement("text", {
         x: center, y: height - 15, "text-anchor": "middle", class: "svg-category"
       }, year);
@@ -1283,30 +1389,36 @@
       svg.append(svgElement("circle", {
         cx: point.x, cy: point.y, r: 3, fill: "#e3ad00"
       }));
-      svg.append(svgElement("text", {
+      appendDataLabel(svg, {
         x: point.x, y: point.y - 7, "text-anchor": "middle", class: "svg-value"
-      }, point.ratio.toFixed(2)));
+      }, point.ratio, point.ratio.toFixed(2));
     }
     addAxisTitles(svg, width, height, "年份");
   }
 
-  function renderBudgetActualColumns(containerId, categoryField, usePlanned = false) {
+  function renderBudgetActualColumns(containerId, categoryField, useOrderTypeBudget = false) {
     const container = document.getElementById(containerId);
     const actualRows = filteredActual();
+    const budgetIsBlank = !useOrderTypeBudget && selectedOrderTypeBudgetShare() === null;
     const actual = new Map(
       groupedPeriod(actualRows, [categoryField], "actual")
         .map(row => [String(row[categoryField]), row.value])
     );
     const budget = new Map();
-    if (usePlanned) {
-      for (const row of groupedPeriod(actualRows, [categoryField], "planned")) {
-        budget.set(String(row[categoryField]), row.value);
+    if (useOrderTypeBudget) {
+      const totalBudget = selectedPeriodBudget(
+        filteredBudget(undefined, false, false).filter(row => row.costElement !== "Unmapped")
+      );
+      for (const [type, share] of Object.entries(orderTypeBudgetShares)) {
+        budget.set(type, totalBudget * share);
       }
     } else {
       for (const row of filteredBudget().filter(item => item.costElement !== "Unmapped")) {
         const key = String(row[categoryField] || "Unmapped");
-        const periodFactor = state.month.length ? state.month.length / 12 : 1;
-        budget.set(key, (budget.get(key) || 0) + row.budget * periodFactor);
+        budget.set(
+          key,
+          (budget.get(key) || 0) + row.budget * budgetPeriodFactor(row.year)
+        );
       }
     }
     const categoryOrder = categoryField === "scope"
@@ -1329,11 +1441,11 @@
 
     const width = Math.max(container.clientWidth - 14, 300);
     const height = Math.max(container.clientHeight - 12, 190);
-    const left = 51;
+    const left = 88;
     const right = 12;
-    const top = 18;
+    const top = 30;
     const longestLabel = Math.max(...labels.map(label => label.length));
-    const bottom = longestLabel > 9 ? 76 : 38;
+    const bottom = longestLabel > 9 ? 84 : 42;
     const plotHeight = height - top - bottom;
     const plotWidth = width - left - right;
     const maximum = Math.max(1, ...labels.flatMap(label => [
@@ -1344,25 +1456,25 @@
       container,
       width,
       height,
-      usePlanned ? "工单类型预算与实际成本" : "成本要素预算与实际成本"
+      useOrderTypeBudget ? "工单类型预算与实际成本" : "成本要素预算与实际成本"
     );
     for (let tick = 0; tick <= 2; tick++) {
       const y = top + plotHeight * tick / 2;
       addGrid(svg, left, y, width - right);
       svg.append(svgElement("text", {
-        x: left - 6, y: y + 3, "text-anchor": "end", class: "svg-category"
+        x: left - 6, y: y + 3, "text-anchor": "end", class: "svg-value"
       }, axisMillionsMoney(maximum * (1 - tick / 2))));
     }
     const slot = plotWidth / labels.length;
     labels.forEach((label, index) => {
       const center = left + slot * (index + .5);
-      const budgetValue = budget.get(label) || 0;
+      const budgetValue = budgetIsBlank ? null : budget.get(label) || 0;
       const actualValue = actual.get(label) || 0;
-      const variance = budgetValue - actualValue;
-      const budgetHeight = budgetValue / maximum * plotHeight;
+      const variance = budgetValue === null ? null : budgetValue - actualValue;
+      const budgetHeight = budgetValue === null ? 0 : budgetValue / maximum * plotHeight;
       const actualHeight = actualValue / maximum * plotHeight;
-      const budgetWidth = Math.min(72, slot * .64);
-      const actualWidth = Math.min(14, slot * .14);
+      const budgetWidth = Math.min(76, slot * .76);
+      const actualWidth = Math.min(16, slot * .16);
       const budgetBar = svgElement("rect", {
         x: center - budgetWidth / 2,
         y: top + plotHeight - budgetHeight,
@@ -1373,17 +1485,19 @@
         tabindex: "0",
         role: "button"
       });
-      addTooltip(
-        budgetBar,
-        `${translateText(label)} ${translateText("Budget")}`,
-        budgetValue
-      );
+      if (budgetValue !== null) {
+        addTooltip(
+          budgetBar,
+          `${translateText(label)} ${translateText("Budget")}`,
+          budgetValue
+        );
+      }
       const actualBar = svgElement("rect", {
         x: center - actualWidth / 2,
         y: top + plotHeight - actualHeight,
         width: actualWidth,
         height: actualHeight,
-        fill: actualValue > budgetValue ? "#df4658" : "#11117a",
+        fill: budgetValue !== null && actualValue > budgetValue ? "#df4658" : "#11117a",
         class: "svg-bar",
         tabindex: "0",
         role: "button"
@@ -1403,13 +1517,15 @@
         });
       }
       svg.append(budgetBar, actualBar);
-      svg.append(svgElement("text", {
-        x: center,
-        y: Math.max(top + 10, top + plotHeight - Math.max(actualHeight, budgetHeight) - 6),
-        "text-anchor": "middle",
-        class: "svg-value",
-        fill: variance < 0 ? "#df4658" : "#24945a"
-      }, `${variance < 0 ? "−" : "+"}${compactMoney(Math.abs(variance))}`));
+      if (variance !== null) {
+        appendDataLabel(svg, {
+          x: center,
+          y: Math.max(12, top + plotHeight - Math.max(actualHeight, budgetHeight) - 16),
+          "text-anchor": "middle",
+          class: "svg-value",
+          fill: variance < 0 ? "#df4658" : "#24945a"
+        }, variance, `${variance < 0 ? "−" : "+"}${compactMoney(Math.abs(variance))}`);
+      }
       const category = svgElement("text", {
         x: center,
         y: height - bottom + 10,
@@ -1436,25 +1552,32 @@
       groupedPeriod(filteredActual(), ["month"], "actual")
         .map(row => [Number(row.month), row.value])
     );
-    const monthlyBudget = sum(filteredBudget().filter(row => row.costElement !== "Unmapped"), "budget") / 12;
+    const budgetIsBlank = selectedOrderTypeBudgetShare() === null;
+    const monthlyBudget = budgetIsBlank
+      ? null
+      : sum(filteredBudget().filter(row => row.costElement !== "Unmapped"), "budget") / 12;
     const months = [...actualByMonth.keys()].filter(month => month >= 1 && month <= 12).sort((a, b) => a - b);
     if (!months.length) return drawEmpty(container);
 
     const width = Math.max(container.clientWidth - 14, 300);
     const height = Math.max(container.clientHeight - 34, 175);
-    const left = 49;
+    const left = 86;
     const right = 14;
-    const top = 18;
+    const top = 26;
     const bottom = 34;
     const plotHeight = height - top - bottom;
     const plotWidth = width - left - right;
-    const maximum = Math.max(1, monthlyBudget, ...months.map(month => actualByMonth.get(month) || 0));
+    const maximum = Math.max(
+      1,
+      monthlyBudget || 0,
+      ...months.map(month => actualByMonth.get(month) || 0)
+    );
     const svg = createSvg(container, width, height, "月度预算与实际成本");
     for (let tick = 0; tick <= 3; tick++) {
       const y = top + plotHeight * tick / 3;
       addGrid(svg, left, y, width - right);
       svg.append(svgElement("text", {
-        x: left - 6, y: y + 3, "text-anchor": "end", class: "svg-category"
+        x: left - 6, y: y + 3, "text-anchor": "end", class: "svg-value"
       }, axisMillionsMoney(maximum * (1 - tick / 3))));
     }
     const pointX = index => left + (months.length === 1 ? plotWidth / 2 : plotWidth * index / (months.length - 1));
@@ -1465,11 +1588,13 @@
     svg.append(svgElement("path", {
       d: actualPath, fill: "none", stroke: "#11117a", "stroke-width": 2.4
     }));
-    const budgetY = pointY(monthlyBudget);
-    svg.append(svgElement("line", {
-      x1: left, y1: budgetY, x2: width - right, y2: budgetY,
-      stroke: "#c5cce9", "stroke-width": 3, "stroke-dasharray": "3 4"
-    }));
+    if (monthlyBudget !== null) {
+      const budgetY = pointY(monthlyBudget);
+      svg.append(svgElement("line", {
+        x1: left, y1: budgetY, x2: width - right, y2: budgetY,
+        stroke: "#c5cce9", "stroke-width": 3, "stroke-dasharray": "3 4"
+      }));
+    }
     months.forEach((month, index) => {
       const x = pointX(index);
       const y = pointY(actualByMonth.get(month) || 0);
@@ -1492,7 +1617,9 @@
     });
     addAxisTitles(svg, width, height, "月份");
     const legend = element("div", { class: "chart-legend" });
-    for (const [label, color] of [["Actual Cost", "#11117a"], ["Budget", "#c5cce9"]]) {
+    const legendItems = [["Actual Cost", "#11117a"]];
+    if (monthlyBudget !== null) legendItems.push(["Budget", "#c5cce9"]);
+    for (const [label, color] of legendItems) {
       const item = element("span", { class: "legend-item" });
       item.append(element("i", { class: "legend-swatch", style: `background:${color}` }));
       item.append(document.createTextNode(label));
@@ -1514,7 +1641,7 @@
 
     const width = Math.max(container.clientWidth - 14, 300);
     const height = Math.max(container.clientHeight - 22, 175);
-    const left = 48;
+    const left = 70;
     const right = 12;
     const top = 18;
     const bottom = 34;
@@ -1529,7 +1656,7 @@
       const y = top + (plotHeight * i) / 3;
       addGrid(svg, left, y, width - right);
       svg.append(svgElement("text", {
-        x: left - 6, y: y + 3, "text-anchor": "end"
+        x: left - 6, y: y + 3, "text-anchor": "end", class: "svg-value"
       }, compactMoney(max - (range * i) / 3)));
     }
 
@@ -1588,7 +1715,7 @@
     const seriesPoints = [];
     const columnCount = options.columnSeries ?? Math.max(1, series.length - 1);
     const categoryWidth = plotWidth / rows.length;
-    const barWidth = Math.min(28, categoryWidth * 0.62 / Math.max(1, columnCount));
+    const barWidth = Math.min(28, categoryWidth * 0.7 / Math.max(1, columnCount));
     series.forEach((item, seriesIndex) => {
       const valid = rows.map(row => Number(row[item.key]) || 0);
       const min = Math.min(0, ...valid);
@@ -1736,9 +1863,9 @@
         x: 0, y, width: 9, height: 9, rx: 2, fill: colors[index % colors.length]
       }));
       legend.append(svgElement("text", { x: 15, y: y + 8 }, item.label));
-      legend.append(svgElement("text", {
+      appendDataLabel(legend, {
         x: 15, y: y + 22, fill: "#a1adb4", "font-size": 9
-      }, `${compactMoney(item.value)} · ${percentage((item.value / total) * 100)}`));
+      }, item.value, `${compactMoney(item.value)} · ${percentage((item.value / total) * 100)}`);
     });
     svg.append(legend);
   }
@@ -1795,12 +1922,12 @@
       svg.append(segment);
       offset += length;
     });
-    svg.append(svgElement("text", {
+    appendDataLabel(svg, {
       x: cx,
       y: cy + 6,
       "text-anchor": "middle",
       class: "donut-total"
-    }, formatAmount(total)));
+    }, total, formatAmount(total));
 
     const legend = svgElement("g", {
       transform: `translate(${width * .61}, ${Math.max(28, height * .19)})`
@@ -1816,11 +1943,11 @@
         fill: palette[item.label] || colors[index % colors.length]
       }));
       legend.append(svgElement("text", { x: 15, y: y + 8 }, item.label));
-      legend.append(svgElement("text", {
+      appendDataLabel(legend, {
         x: 15,
         y: y + 23,
         class: "svg-value"
-      }, `${formatAmount(item.value)} · ${formatPercentage(item.value / total * 100)}`));
+      }, item.value, `${formatAmount(item.value)} · ${formatPercentage(item.value / total * 100)}`);
     });
     svg.append(legend);
   }
@@ -1831,15 +1958,18 @@
 
   function renderKpis(prefix = "kpi-") {
     const actualRows = filteredActual();
+    const budgetShare = selectedOrderTypeBudgetShare();
     const budgetRows = filteredBudget().filter(row => row.costElement !== "Unmapped");
     const actual = sum(actualRows, "actual");
-    const budget = sum(budgetRows, "budget") * (state.month.length ? state.month.length / 12 : 1);
-    const variance = budget - actual;
-    setKpiText(`${prefix}budget`, kpiMoney(budget));
+    const budget = budgetShare === null ? null : selectedPeriodBudget(budgetRows);
+    const variance = budget === null ? null : budget - actual;
+    setKpiText(`${prefix}budget`, budget === null ? "—" : kpiMoney(budget));
     setKpiText(`${prefix}actual`, kpiMoney(actual));
-    setKpiText(`${prefix}variance`, kpiMoney(variance));
+    setKpiText(`${prefix}variance`, variance === null ? "—" : kpiMoney(variance));
     const varianceFoot = document.getElementById(`${prefix}variance-foot`);
-    if (varianceFoot) varianceFoot.textContent = variance >= 0 ? "低于预算" : "高于预算";
+    if (varianceFoot) {
+      varianceFoot.textContent = variance === null ? "" : variance >= 0 ? "低于预算" : "高于预算";
+    }
     const typeTotals = new Map(
       groupedPeriod(actualRows, ["costType"], "actual").map(row => [row.costType, row.value])
     );
@@ -1968,6 +2098,8 @@
       if (!matchesSelection(state.month, row.month)) return false;
       if (!matchesSelection(state.scope, row.scope)) return false;
       if (!matchesSelection(state.costType, row.costType)) return false;
+      if (!matchesSelection(state.costElement, row.costElement)) return false;
+      if (!matchesSelection(state.orderType, row.orderType)) return false;
       if (!matchesSelection(state.equipment, row.equipment)) return false;
       if (
         state.selection &&
@@ -2464,18 +2596,19 @@
     });
     addTooltip(marker, translateText("总预算"), totalBudget);
     svg.append(marker);
-    svg.append(svgElement("text", {
+    appendDataLabel(svg, {
       x: cx,
       y: cy - 13,
       "text-anchor": "middle",
       class: "donut-total"
-    }, capexOverviewMoney(approvedBudget)));
-    svg.append(svgElement("text", {
+    }, approvedBudget, capexOverviewMoney(approvedBudget));
+    appendDataLabel(svg, {
       x: cx,
       y: cy + 10,
       "text-anchor": "middle",
       class: "svg-category"
-    }, `${(Math.floor((totalBudget ? approvedBudget / totalBudget * 100 : 0) * 10) / 10).toFixed(1)}%`));
+    }, totalBudget ? approvedBudget / totalBudget * 100 : 0,
+    `${(Math.floor((totalBudget ? approvedBudget / totalBudget * 100 : 0) * 10) / 10).toFixed(1)}%`);
     svg.append(svgElement("text", {
       x: left,
       y: cy + 18,
@@ -2488,12 +2621,12 @@
       "text-anchor": "end",
       class: "svg-value"
     }, capexOverviewMoney(approvedBudget)));
-    svg.append(svgElement("text", {
+    appendDataLabel(svg, {
       x: markerX + 9,
       y: markerY - 5,
       "text-anchor": "start",
       class: "svg-value"
-    }, capexOverviewMoney(totalBudget)));
+    }, totalBudget, capexOverviewMoney(totalBudget));
   }
 
   function renderCapexDistribution() {
@@ -2523,9 +2656,9 @@
 
     const width = Math.max(container.clientWidth - 14, 480);
     const height = Math.max(container.clientHeight - 35, 330);
-    const left = 58;
+    const left = 78;
     const right = 18;
-    const top = 18;
+    const top = 28;
     const bottom = 108;
     const plotHeight = height - top - bottom;
     const plotWidth = width - left - right;
@@ -2570,7 +2703,7 @@
     }
 
     const categoryWidth = plotWidth / rows.length;
-    const barWidth = Math.max(8, Math.min(34, categoryWidth * .58));
+    const barWidth = Math.max(8, Math.min(34, categoryWidth * .68));
     const series = [
       { key: "ungrValue", label: "未收货", color: "#171276" },
       { key: "grValue", label: "已收货", color: "#cbd2ec" },
@@ -2653,12 +2786,12 @@
       });
       category.setAttribute("data-tooltip", `${row.wbs} ${row.name}`);
       svg.append(category);
-      svg.append(svgElement("text", {
+      appendDataLabel(svg, {
         x: center,
-        y: Math.min(yForValue(row.budget2026), pointY) - 7,
+        y: Math.max(12, Math.min(yForValue(row.budget2026), pointY) - 16),
         "text-anchor": "middle",
         class: "svg-value capex-budget-label"
-      }, capexChartMoney(remainingBudget)));
+      }, remainingBudget, capexChartMoney(remainingBudget));
     });
 
     occupiedPoints.forEach(point => {
@@ -2713,8 +2846,8 @@
     const formatted = new Intl.NumberFormat(
       state.language === "zh" ? "zh-CN" : "en-US",
       { minimumFractionDigits: digits, maximumFractionDigits: digits }
-    ).format((Number(value) || 0) / 1_000_000);
-    return `${formatted}M`;
+    ).format(convertCurrency(value) / 1_000_000);
+    return `${currencyPrefix()}${formatted}M`;
   }
 
   function renderCapexPlanLegend() {
@@ -2744,9 +2877,9 @@
 
     const width = Math.max(container.clientWidth - 14, 360);
     const height = Math.max(container.clientHeight - 8, 240);
-    const left = 48;
+    const left = 76;
     const right = 18;
-    const top = 14;
+    const top = 24;
     const bottom = 32;
     const plotHeight = height - top - bottom;
     const plotWidth = width - left - right;
@@ -2785,7 +2918,7 @@
     }
 
     const categoryWidth = plotWidth / rows.length;
-    const barWidth = Math.max(12, Math.min(42, categoryWidth * .5));
+    const barWidth = Math.max(12, Math.min(42, categoryWidth * .62));
     const budgetY = yForValue(data.capex.plan.budget2026);
     const budgetLine = svgElement("line", {
       x1: left,
@@ -2831,12 +2964,12 @@
         addTooltip(bar, item.label, value, amount => capexPlanMillions(amount, 2));
         svg.append(bar);
         if (segmentHeight >= 18) {
-          svg.append(svgElement("text", {
+          appendDataLabel(svg, {
             x: center,
             y: segmentTop + segmentHeight / 2 + 3,
             "text-anchor": "middle",
             class: `capex-plan-segment-label ${item.key === "actGR" ? "capex-plan-segment-label-act" : "capex-plan-segment-label-ytd"}`
-          }, capexPlanMillions(value)));
+          }, value, capexPlanMillions(value));
         }
         if (value > 0) positiveBase = segmentEnd;
         else negativeBase = segmentEnd;
@@ -2871,7 +3004,8 @@
       `${translateText("累计收货金额")}: ${capexPlanMillions(totalLabels[totalLabels.length - 1].value, 2)}`
     );
     svg.append(totalLine);
-    totalLabels.forEach(point => {
+    const totalLabelStride = Math.max(1, Math.ceil(64 / categoryWidth));
+    totalLabels.forEach((point, index) => {
       svg.append(svgElement("circle", {
         cx: point.x,
         cy: point.y,
@@ -2879,12 +3013,13 @@
         fill: "#ed6a36",
         "data-tooltip": `${translateText("累计收货金额")}: ${capexPlanMillions(point.value, 2)}`
       }));
-      svg.append(svgElement("text", {
+      if (index % totalLabelStride !== 0 && index !== totalLabels.length - 1) return;
+      appendDataLabel(svg, {
         x: point.x,
-        y: point.y - 8,
+        y: point.y - 12,
         "text-anchor": "middle",
         class: "capex-plan-total-label"
-      }, capexPlanMillions(point.value)));
+      }, point.value, capexPlanMillions(point.value));
     });
   }
 
@@ -2926,12 +3061,12 @@
       amount => capexPlanMillions(amount, 2)
     );
     svg.append(track, progress);
-    svg.append(svgElement("text", {
+    appendDataLabel(svg, {
       x: cx,
       y: cy - 5,
       "text-anchor": "middle",
       class: "capex-plan-gauge-value"
-    }, capexPlanMillions(value, 2)));
+    }, value, capexPlanMillions(value, 2));
     svg.append(svgElement("text", {
       x: cx - radius,
       y: cy + 18,
@@ -2974,9 +3109,11 @@
       { key: "requisitioner", label: "申请人" },
       {
         key: "netOrderValueCny",
-        label: state.language === "zh" ? "未交付金额 (CNY)" : "Open Delivery Value (CNY)",
+        label: state.language === "zh"
+          ? `未交付金额 (${state.currency})`
+          : `Open Delivery Value (${state.currency})`,
         numeric: true,
-        render: value => amountFormat.format(Number(value) || 0)
+        render: value => amountFormat.format(convertCurrency(value))
       },
       {
         key: "fctGrMonth",
@@ -2991,7 +3128,7 @@
     const totalRow = element("tr", { class: "capex-plan-total-row" });
     totalRow.append(element("td", { colspan: "4" }, translateText("合计")));
     totalRow.append(element("td", { class: "numeric" },
-      amountFormat.format(sum(orders, "netOrderValueCny"))));
+      amountFormat.format(convertCurrency(sum(orders, "netOrderValueCny")))));
     totalRow.append(element("td"));
     footer.append(totalRow);
     table.append(footer);
@@ -3098,7 +3235,7 @@
       amount => `${downtimeLabelFormat.format(amount)} h`
     );
 
-    const barWidth = Math.max(4, Math.min(34, plotWidth / months.length * 0.58));
+    const barWidth = Math.max(4, Math.min(34, plotWidth / months.length * 0.66));
     months.forEach((month, index) => {
       const value = monthlyValues.get(month) || 0;
       const center = pointX(index);
@@ -3123,12 +3260,12 @@
         amount => `${preciseNumberFormat.format(amount)} h`
       );
       svg.append(bar);
-      svg.append(svgElement("text", {
+      appendDataLabel(svg, {
         x: center,
-        y: Math.max(top + 10, barY - 5),
+        y: Math.max(12, barY - 16),
         "text-anchor": "middle",
         class: "svg-value"
-      }, downtimeLabelFormat.format(value)));
+      }, value, downtimeLabelFormat.format(value));
       svg.append(svgElement("text", {
         x: center,
         y: height - 12,
@@ -3307,7 +3444,7 @@
     svg.style.width = "100%";
     svg.style.height = "100%";
     const categoryWidth = plotWidth / values.length;
-    const barWidth = Math.max(5, Math.min(42, categoryWidth * 0.48));
+    const barWidth = Math.max(5, Math.min(42, categoryWidth * 0.58));
     const baseline = top + plotHeight;
     const yCount = value => baseline - (value / maxCount) * plotHeight;
     const yRate = value => baseline - (value / 100) * plotHeight;
@@ -3372,22 +3509,24 @@
 
       const totalLabel = numberFormat.format(Math.round(row.total));
       const labelWidth = Math.max(25, totalLabel.length * 6 + 8);
-      const labelY = Math.max(top + 2, yCount(row.total) + 3);
+      const labelY = Math.max(4, yCount(row.total) - 18);
       svg.append(svgElement("rect", {
         x: center - labelWidth / 2,
         y: labelY,
         width: labelWidth,
         height: 15,
         rx: 2,
-        fill: "#c9cad8",
-        opacity: .94
+        fill: "#fff",
+        stroke: "#dfe3ec",
+        "stroke-width": .7,
+        opacity: .98
       }));
-      svg.append(svgElement("text", {
+      appendDataLabel(svg, {
         x: center,
         y: labelY + 10.5,
         "text-anchor": "middle",
         class: "svg-value"
-      }, totalLabel));
+      }, row.total, totalLabel);
       svg.append(svgElement("text", {
         x: center,
         y: height - 11,
@@ -3518,7 +3657,7 @@
     const plotHeight = height - top - bottom;
     const plotWidth = width - left - right;
     const categoryWidth = plotWidth / days.length;
-    const barWidth = Math.max(3, Math.min(20, categoryWidth * 0.56));
+    const barWidth = Math.max(3, Math.min(20, categoryWidth * 0.68));
     const baseline = top + plotHeight;
     const yCount = value => baseline - value / maxCount * plotHeight;
     const yRate = value => baseline - value / 100 * plotHeight;
@@ -3579,12 +3718,31 @@
       const total = totalValues[index];
       const showPointLabels = categoryWidth >= 25 || day % 5 === 1 || day === 31;
       if (total > 0 && showPointLabels) {
-        svg.append(svgElement("text", {
+        const totalLabel = numberFormat.format(total);
+        const preferredY = Math.max(12, yCount(total) - 16);
+        const labelTop = preferredY - 10;
+        const labelBottom = preferredY + 2;
+        const labelWidth = totalLabel.length * 6 + 8;
+        const intersectedColumnTop = days.reduce((highestTop, _, columnIndex) => {
+          const columnTotal = totalValues[columnIndex];
+          const columnCenter = left + categoryWidth * (columnIndex + 0.5);
+          const columnTop = yCount(columnTotal);
+          const overlapsHorizontally = Math.abs(columnCenter - center) <
+            (barWidth + labelWidth) / 2;
+          const overlapsVertically = labelTop < baseline && labelBottom > columnTop;
+          return columnTotal > 0 && overlapsHorizontally && overlapsVertically
+            ? Math.min(highestTop, columnTop)
+            : highestTop;
+        }, Number.POSITIVE_INFINITY);
+        const labelY = Number.isFinite(intersectedColumnTop)
+          ? Math.min(preferredY, intersectedColumnTop - 8)
+          : preferredY;
+        appendDataLabel(svg, {
           x: center,
-          y: Math.max(top + 10, yCount(total) - 5),
+          y: labelY,
           "text-anchor": "middle",
           class: "svg-value"
-        }, numberFormat.format(total)));
+        }, total, totalLabel);
       }
       svg.append(svgElement("text", {
         x: center,
@@ -3625,12 +3783,31 @@
       );
       svg.append(point);
       if (categoryWidth >= 25 || day % 5 === 1 || day === 31) {
-        svg.append(svgElement("text", {
+        const label = `${Math.round(rate)}%`;
+        const preferredY = rate >= 96 ? y + 14 : y - 6;
+        const labelTop = preferredY - 10;
+        const labelBottom = preferredY + 2;
+        const labelWidth = label.length * 6 + 8;
+        const intersectedColumnTop = days.reduce((highestTop, _, columnIndex) => {
+          const columnTotal = totalValues[columnIndex];
+          const columnCenter = left + categoryWidth * (columnIndex + 0.5);
+          const columnTop = yCount(columnTotal);
+          const overlapsHorizontally = Math.abs(columnCenter - x) <
+            (barWidth + labelWidth) / 2;
+          const overlapsVertically = labelTop < baseline && labelBottom > columnTop;
+          return columnTotal > 0 && overlapsHorizontally && overlapsVertically
+            ? Math.min(highestTop, columnTop)
+            : highestTop;
+        }, Number.POSITIVE_INFINITY);
+        const labelY = Number.isFinite(intersectedColumnTop)
+          ? Math.min(preferredY, intersectedColumnTop - 8)
+          : preferredY;
+        appendDataLabel(svg, {
           x,
-          y: rate >= 96 ? y + 14 : y - 6,
+          y: labelY,
           "text-anchor": "middle",
           class: "svg-value"
-        }, `${Math.round(rate)}%`));
+        }, rate, label);
       }
     });
 
@@ -3701,7 +3878,7 @@
     document.querySelector(".period-chip").hidden = ["capexPlan", "home"].includes(state.view);
     refreshMonthLabels();
     refreshScopeLabels();
-    for (const field of ["year", "month", "scope", "costType", "equipment"]) {
+    for (const field of ["year", "month", "scope", "costType", "costElement", "orderType", "equipment"]) {
       syncMultiPicker(field);
     }
     updateSelectionChip();
@@ -3724,9 +3901,20 @@
     document.getElementById("month-filter").disabled = !dateFilterView;
     document.getElementById("scope-filter").disabled = !maintenanceView;
     document.getElementById("type-filter").disabled = !maintenanceView;
+    document.getElementById("cost-element-filter").disabled = !maintenanceView;
+    document.getElementById("order-type-filter").disabled = !maintenanceView;
     document.getElementById("equipment-filter-control").hidden = state.view !== "detailsWT";
-    for (const field of ["year", "month", "scope", "costType", "equipment"]) {
-      const select = document.getElementById(field === "costType" ? "type-filter" : `${field}-filter`);
+    const filterSelectIds = {
+      year: "year-filter",
+      month: "month-filter",
+      scope: "scope-filter",
+      costType: "type-filter",
+      costElement: "cost-element-filter",
+      orderType: "order-type-filter",
+      equipment: "equipment-filter"
+    };
+    for (const [field, selectId] of Object.entries(filterSelectIds)) {
+      const select = document.getElementById(selectId);
       const picker = document.querySelector(`.multi-picker[data-filter="${field}"]`);
       picker.querySelector(".multi-picker-trigger").disabled = select.disabled;
     }
@@ -3783,6 +3971,30 @@
     if (state.view === "dailyWO") renderDailyWorkOrders();
     if (state.view === "energy") renderEnergy();
     applyLanguage();
+    renderCurrencyControl();
+  }
+
+  function renderCurrencyControl() {
+    const button = document.getElementById("currency-toggle");
+    const label = document.getElementById("currency-rate-label");
+    const annualChartUnit = document.getElementById("annual-chart-unit");
+    const rate = Number(data.capex.plan.exchangeRates.CHF);
+    const rateText = new Intl.NumberFormat(
+      state.language === "zh" ? "zh-CN" : "en-US",
+      { maximumFractionDigits: 6 }
+    ).format(rate);
+    button.textContent = state.currency;
+    annualChartUnit.textContent = state.currency;
+    button.setAttribute(
+      "aria-label",
+      state.language === "zh"
+        ? `切换显示币种，当前为 ${state.currency}`
+        : `Toggle display currency, currently ${state.currency}`
+    );
+    button.title = button.getAttribute("aria-label");
+    label.textContent = state.language === "zh"
+      ? `汇率：1 CNY = ${rateText} CHF`
+      : `Rate: 1 CNY = ${rateText} CHF`;
   }
 
   function initialize() {
@@ -3817,6 +4029,16 @@
       "全部工单类型"
     );
     populateSelect(
+      document.getElementById("cost-element-filter"),
+      sortedUnique(data.actual.map(row => row.costElement)),
+      "全部成本要素"
+    );
+    populateSelect(
+      document.getElementById("order-type-filter"),
+      sortedUnique(data.actual.map(row => row.orderType)),
+      "全部订单类型"
+    );
+    populateSelect(
       document.getElementById("equipment-filter"),
       data.equipment
         .map(row => ({ value: row.equipment, label: row.description }))
@@ -3840,6 +4062,8 @@
     mountMultiPicker(document.getElementById("month-filter"), "month");
     mountMultiPicker(document.getElementById("scope-filter"), "scope");
     mountMultiPicker(document.getElementById("type-filter"), "costType");
+    mountMultiPicker(document.getElementById("cost-element-filter"), "costElement");
+    mountMultiPicker(document.getElementById("order-type-filter"), "orderType");
     mountMultiPicker(document.getElementById("equipment-filter"), "equipment");
 
     document.querySelectorAll("[data-detail-action]").forEach(button => {
@@ -3892,6 +4116,10 @@
     });
     document.getElementById("language-toggle").addEventListener("click", () => {
       state.language = state.language === "zh" ? "en" : "zh";
+      render();
+    });
+    document.getElementById("currency-toggle").addEventListener("click", () => {
+      state.currency = state.currency === "CNY" ? "CHF" : "CNY";
       render();
     });
     document.body.addEventListener("pointerover", event => {
