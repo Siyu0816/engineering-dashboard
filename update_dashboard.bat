@@ -12,10 +12,6 @@ if errorlevel 1 (
     "C:\Users\bais\AppData\Local\GitHubDesktop\app-3.7.0\resources\app\git\cmd\git.exe" commit -m "Dashboard Data Update"
 
     "C:\Users\bais\AppData\Local\GitHubDesktop\app-3.7.0\resources\app\git\cmd\git.exe" push
-
-    echo Dashboard updated successfully.
-) else (
-    echo No data changes detected.
 )
 
-pause
+exit /b
