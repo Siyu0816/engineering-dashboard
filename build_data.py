@@ -650,6 +650,12 @@ def read_capex_data():
     requisitions_frame = pd.read_excel(SOURCE_DIR / "Capex" / "ME5A.XLSX")
     requisitions = []
     for _, row in requisitions_frame.iterrows():
+        requisition_date = pd.to_datetime(row.get("Requisition Date"), errors="coerce")
+        next_month_date = (
+            requisition_date + pd.DateOffset(months=1)
+            if pd.notna(requisition_date)
+            else pd.NaT
+        )
         requisitions.append(
             {
                 "requisition": clean_key(row.get("Purchase Requisition")),
@@ -659,6 +665,16 @@ def read_capex_data():
                 "value": number(row.get("Total Value")),
                 "currency": clean_text(row.get("Currency")),
                 "deliveryDate": clean_text(row.get("Delivery Date")),
+                "requisitionDate": (
+                    requisition_date.strftime("%Y-%m-%d")
+                    if pd.notna(requisition_date)
+                    else ""
+                ),
+                "nextMonthDate": (
+                    next_month_date.strftime("%Y-%m-%d")
+                    if pd.notna(next_month_date)
+                    else ""
+                ),
                 "requisitioner": clean_text(row.get("Requisitioner")),
             }
         )

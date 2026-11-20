@@ -39,6 +39,15 @@
     ["尚未占用", "Not Yet Occupied"],
     ["采购订单金额", "PO Value"],
     ["采购申请金额", "PR Value"],
+    ["采购申请详情", "Purchase Requisition Details"],
+    ["申请日期", "Requisition Date"],
+    ["截止日期", "Deadline"],
+    ["总金额", "Total Value"],
+    ["返回CAPEX总览", "Back to CAPEX Overview"],
+    ["小额支出：", "Small Spending:"],
+    ["外部服务成本 + 外部材料成本（< 5000 CHF）", "External Service Cost + External Material Cost (< 5000 CHF)"],
+    ["改善：", "Improvement:"],
+    ["ZPM6 工单成本", "ZPM6 Work Order Cost"],
     ["已收货金额", "GR Value"],
     ["未收货金额", "UnGR Value"],
     ["未收货", "UnGR"],
@@ -465,7 +474,8 @@
     selection: null,
     contractQuery: "",
     workOrderQuery: "",
-    spendingDetail: null
+    spendingDetail: null,
+    capexPrDetail: false
   };
   const viewYearFilters = new Map();
   const views = {
@@ -2633,6 +2643,39 @@
     }
   }
 
+  function renderCapexPrDetails() {
+    const container = document.getElementById("capex-pr-detail-table");
+    const rows = [...(data.capex.requisitions || [])]
+      .filter(row => row.description || row.requisitioner || row.value)
+      .sort((a, b) => String(b.requisitionDate).localeCompare(String(a.requisitionDate)));
+    if (!rows.length) return drawEmpty(container);
+
+    const table = makeTable([
+      { key: "requisitioner", label: "申请人" },
+      { key: "description", label: "短文本" },
+      {
+        key: "value",
+        label: "总金额",
+        numeric: true,
+        render: value => preciseNumberFormat.format(convertCurrency(value))
+      },
+      { key: "requisitionDate", label: "申请日期" },
+      { key: "nextMonthDate", label: "截止日期" }
+    ], rows);
+    const footer = element("tfoot");
+    const totalRow = element("tr");
+    totalRow.append(
+      element("th", { colspan: "2" }, "合计"),
+      element("th", { class: "numeric" },
+        preciseNumberFormat.format(convertCurrency(sum(rows, "value")))),
+      element("td"),
+      element("td")
+    );
+    footer.append(totalRow);
+    table.append(footer);
+    container.replaceChildren(table);
+  }
+
   function renderCapex() {
     const overview = data.capex.overview;
     setKpiText("capex-overview-total-budget", capexOverviewMoney(overview.totalBudget));
@@ -2642,6 +2685,12 @@
     setKpiText("capex-overview-pr-value", capexOverviewMoney(overview.prValue));
     setKpiText("capex-overview-gr-value", capexOverviewMoney(overview.grValue));
     setKpiText("capex-overview-ungr-value", capexOverviewMoney(overview.ungrValue));
+    document.getElementById("capex-pr-detail-panel").hidden = !state.capexPrDetail;
+    document.getElementById("capex-grid").hidden = state.capexPrDetail;
+    if (state.capexPrDetail) {
+      renderCapexPrDetails();
+      return;
+    }
     renderCapexGauge();
     renderCapexDistribution();
     renderCapexProjectChart();
@@ -3857,6 +3906,10 @@
         const action = button.dataset.detailAction;
         if (action === "ungr") showUngrdetails();
         if (action === "equipment") showEquipmentDetails();
+        if (action === "capex-pr") {
+          state.capexPrDetail = true;
+          render();
+        }
         if (action === "small-spending" || action === "improvement") {
           state.spendingDetail = action;
           render();
@@ -3868,6 +3921,10 @@
     });
     document.getElementById("spending-detail-back").addEventListener("click", () => {
       state.spendingDetail = null;
+      render();
+    });
+    document.getElementById("capex-pr-detail-back").addEventListener("click", () => {
+      state.capexPrDetail = false;
       render();
     });
     document.getElementById("nav-back").addEventListener("click", () => {

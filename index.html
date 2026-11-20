@@ -179,6 +179,10 @@
       </section>
 
       <section id="view-details" class="view-panel" hidden>
+        <ul class="spending-note" role="note">
+          <li><strong>小额支出：</strong><span>外部服务成本 + 外部材料成本（&lt; 5000 CHF）</span></li>
+          <li><strong>改善：</strong><span>ZPM6 工单成本</span></li>
+        </ul>
         <div id="spending-summary" class="chart-grid spending-grid">
           <article class="card chart-card">
             <header class="card-header"><div><h2>小额支出实际成本</h2><p>按区域统计</p></div><button class="visual-detail-button" type="button" data-detail-action="small-spending" aria-label="查看小额支出明细" title="查看小额支出明细">i</button></header>
@@ -226,11 +230,18 @@
           <article class="kpi-card accent-blue"><div class="kpi-label">已批准预算</div><div id="capex-overview-approved-budget" class="kpi-value">—</div></article>
           <article class="kpi-card accent-gold"><div class="kpi-label">尚未占用</div><div id="capex-overview-not-yet-occupied" class="kpi-value">—</div></article>
           <article class="kpi-card accent-violet"><div class="kpi-label">采购订单金额</div><div id="capex-overview-po-value" class="kpi-value">—</div></article>
-          <article class="kpi-card accent-blue"><div class="kpi-label">采购申请金额</div><div id="capex-overview-pr-value" class="kpi-value">—</div></article>
+          <article class="kpi-card accent-blue"><div class="kpi-label">采购申请金额<button class="visual-detail-button" type="button" data-detail-action="capex-pr" aria-label="查看采购申请明细" title="查看采购申请明细">i</button></div><div id="capex-overview-pr-value" class="kpi-value">—</div></article>
           <article class="kpi-card accent-teal"><div class="kpi-label">已收货金额</div><div id="capex-overview-gr-value" class="kpi-value">—</div></article>
           <article class="kpi-card accent-gold"><div class="kpi-label">未收货金额</div><div id="capex-overview-ungr-value" class="kpi-value">—</div></article>
         </div>
-        <div class="capex-grid">
+        <div id="capex-pr-detail-panel" class="card chart-card detail-table-panel" hidden>
+          <header class="card-header">
+            <div><h2>采购申请详情</h2><p>ME5A</p></div>
+            <button id="capex-pr-detail-back" class="detail-back-button" type="button" aria-label="返回CAPEX总览" title="返回CAPEX总览">←</button>
+          </header>
+          <div id="capex-pr-detail-table" class="table-wrap"></div>
+        </div>
+        <div id="capex-grid" class="capex-grid">
           <article class="card chart-card"><header class="card-header"><div><h2>已批准预算</h2></div></header><div id="capex-budget-gauge" class="chart capex-gauge"></div></article>
           <article class="card chart-card"><header class="card-header"><div><h2>未收货 / 采购申请 / 已收货</h2></div></header><div id="capex-distribution-chart" class="chart capex-distribution"></div></article>
           <article class="card chart-card capex-project-card"><header class="card-header"><div><h2>各项目未收货、已收货、采购申请与占用</h2><p>按项目</p></div></header><div id="capex-project-chart" class="chart capex-project-chart"></div></article>
