@@ -6,7 +6,16 @@ import pandas as pd
 
 
 PROJECT_DIR = Path(__file__).resolve().parent
-SOURCE_DIR = PROJECT_DIR / "data"
+SOURCE_DIR = Path(
+    r"C:\Users\bais\Givaudan International SA\Engineering - Opex"
+)
+WO_DIR = Path(
+    r"C:\Users\bais\Givaudan International SA\STD_F&B_Changzhou_Site - 01. CZ daily meeting"
+)
+CAPEX_DIR = Path(
+    r"C:\Users\bais\Givaudan International SA\Engineering - Capex Review Meetings"
+)
+# SOURCE_DIR = PROJECT_DIR / "data"
 OUTPUT_FILE = PROJECT_DIR / "dashboard-data.js"
 MONTHS = {
     name.upper(): index
@@ -361,7 +370,7 @@ def read_work_order_status():
 
 def read_work_order_schedule_summary():
     frame = pd.read_excel(
-        SOURCE_DIR / "WO" / "2026 WO Schedule.xlsx",
+        WO_DIR / "2026 WO Schedule.xlsx",
         sheet_name="Summary",
         header=None,
     )
@@ -555,7 +564,7 @@ def read_energy_data():
 
 def read_capex_data():
     project_frame = pd.read_excel(SOURCE_DIR / "Capex" / "CJE0.xlsx", sheet_name="CJE0")
-    status_file = SOURCE_DIR / "Capex" / "2026 CN18 Capex Status.xlsx"
+    status_file = CAPEX_DIR / "2026 CN18 Capex Status.xlsx"
     exchange_rate_frame = pd.read_excel(status_file, sheet_name="Currency")
     exchange_rates = {
         clean_text(row.get("Currency Code")).upper(): parse_sap_number(row.get("Rate"))
