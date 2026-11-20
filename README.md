@@ -1,74 +1,92 @@
-# Engineering Department Operations Center Dashboard
+# 工程部运营中心 · V13 · 独立年份筛选
 
-The site is a login-free, locally rendered recreation of the usable report pages in `Engineering Operations Center.pbix`. It reads generated data from the Excel files in the parent folder and its `BU`, `Breakdown`, `Capex`, `Energy`, `Order Cost`, and `WO` subfolders. It does not use a Power BI embed, call Power BI Service, or require an Entra app.
+## V13 更新
 
-The PBIX connects to a remote Power BI semantic model, so this page recreates its page structure and available report interactions from the supplied local data; model-only measures and pixel-exact visuals cannot be reproduced from the PBIX file alone.
+- 各报表页独立保存年份筛选，切换页面不再传递年份；返回页面恢复上一次选择，包括多选和全部年份。
+- 能源页年份默认 2024、2025、2026；其他页面年份默认 2026。每日工单继续默认选择当前月份。
+- 重置筛选只将当前页面的年份恢复为对应默认值，不会清空其他页面记住的年份；刷新整站后各页重新使用默认年份。
+- 保留前版图表比例、能源排版、CAPEX 悬停和放大视图优化。执行 `node tests/year-filters.cjs` 验证页面隔离及默认值。
 
-## Report pages
+## V12 更新
 
-The navigation follows the PBIX page names:
+- 统一修复所有图表放大查看时宽高拉伸的问题。保留原图尺寸与比例，超出窗口时等比缩小；圆环不会变成椭圆，文字不再压扁。
+- 放大窗口按内容宽度设置大小，使用可滚动内容和固定可见的顶部栏；保留圆环与右侧金额的布局。
+- 关闭按钮采用 44px 点击区域和居中的矢量叉号，支持悬停与键盘焦点样式；支持 Esc、点击遮罩关闭，关闭后焦点返回入口。
+- 每日工单汇总放大时展开日期，并保留月份标题；支出占比的分类标签与金额继续显示。
+- 新增 `focus-view.css`；运行 `node tests/focus-behavior.cjs` 验证查看副本的比例与布局处理。
 
-- Home
-- Overview-MC, Area-MC, Others-MC, Contract-MC
-- Capex-Overview, Capex-GR Plan
-- Breakdown, Work Order, Daily WO, Energy
+## V11 更新
 
-The pages have shared multi-select year/month and relevant cost/area filters, interactive charts with value tooltips, report-style navigation, and source-backed tables; Home has no filter bar, and the report content is centered with a 1,280-pixel maximum width. The top bar includes a CNY/CHF display toggle on every page and shows the exchange rate from the CAPEX Currency sheet (`1 CNY = 0.114 CHF` in the current snapshot); amounts are converted for display without changing source data. Table headers can be clicked to sort values ascending/descending; month slicers use localized month labels, and chart currency labels/tooltips generally use K units. Maintenance Overview budget/actual chart y-axes use M units for readability. The hamburger navigation has a standalone Home item and four collapsible report groups. Its compact top-right arrow closes the menu without changing the current report page. The Givaudan mark appears in the menu and report heading. The UnGR KPI opens rows from `WO/ME2N_UnGR.XLSX`; Area-MC's equipment information button opens equipment-register details; Small Spending & Improvement opens the corresponding order-cost rows and uses the Power BI-style cost-element donut palette. The Area-MC equipment ranking joins Order Cost `Equipment` to `Relationship.XLSX` → `Equipment IH08` on `Equipment`, groups actual costs by the matched `Description`, and excludes unmatched/blank descriptions. Contract Follow Up contains its monthly contract-order actual-cost chart and contract table; expiring contracts are highlighted red and expired contracts gray. Overview-MC opens on fiscal year 2026 and follows the supplied report layout with seven KPI cards in one row on desktop and four budget/actual charts. Its annual actual-cost columns are red when actual exceeds budget and navy otherwise; the actual-cost-per-kg line occupies a separate band above the columns, with a right axis in the currently selected display currency per kilogram; this divides converted annual actual cost by `Energy/CN18 Production Volume.xlsx` `Total` × 1,000. Actual-cost columns in the other budget/actual charts use the same red/navy rule. Excel row data is aggregated from local source files by the Python generator.
+- 故障清单：故障描述从 25% 加宽至 32%，功能位置从 16% 缩窄至 9%，保留内容换行与手机卡片展示。
+- CAPEX 预算和金额构成两张卡片：圆环区域与右侧数据区域约为 59:41，圆环最大宽度增加至 310px。
+- 能源页进入和重置时默认选择 2024、2025、2026 年及全部月份；指标与图表使用相同筛选结果，手动修改筛选仍然有效。
+- 能源桌面排版：电力 / 天然气，蒸汽 / 氮气，分割线，城市用水独占一行，生活污水 / 工业废水；手机按此顺序单列显示。
 
-## Source mapping
+## 本次优化（以下历史记录以此节为准）
 
-- Maintenance costs, costs by scope/element/type, and work-order detail: the monthly `../Order Cost/YYYY-MM.XLSX` files (the generator also supports a single `Work Order Cost.xlsx` fallback)
-- Budget and cost-center/type mappings, equipment, contract register, and outsourcing examples: `../BU/BU 2024-2026.XLSX` and `../Relationship.XLSX`. Cost elements, cost-element identifiers, order types, cost centers, equipment and contract orders are joined from the corresponding relationship sheets.
-- CAPEX overview cards and project chart: `../Capex/2026 CN18 Capex Status.xlsx` (`SUMMARY`), `CJE0.xlsx` (`CJE0`), and `ME5A.XLSX`
-- CAPEX actuals, GR plan, and exchange rates: `../Capex/CJ74.XLSX`, `ME2N.xlsx`, `CJE0.xlsx`, and the `Currency` sheet in `2026 CN18 Capex Status.xlsx`
-- UnGR purchase orders: `../WO/ME2N_UnGR.XLSX`
-- Work-order execution: `../WO/2026 WO.xlsx`
-- Daily work-order schedule: `../WO/2026 WO Schedule.xlsx` (`Summary` sheet)
-- Breakdown detail: `../Breakdown/Breakdown.xlsx`
-- Production and utilities: `../Energy/CN18 Production Volume.xlsx` and `../Energy/utility consumption in cz site2026.xlsx`
+- 每日工单进入页面和重置筛选时选择电脑当前年月，当前月份的汇总默认展开；图表按月份实际天数绘制。
+- CAPEX 项目整列悬停或键盘聚焦，显示未收货、已收货、采购申请、已占用、未占用五项精确金额，包含零值及负余额，沿用币种切换。窄屏每组 4 或 8 个项目，可翻组；各组保持相同金额坐标轴。
+- 总览年度与月度趋势并排，月度趋势占更大宽度；区域主图与设备表通栏，成本要素和工单类型对照排列。工单执行主图通栏，两个分类图并排。能源主图通栏，其余图表两列排列。小屏自动改为单列。
+- 支出与改善右侧采用圆环、分类金额、百分比与比例条组合，保留分类点击筛选和放大查看。
+- 报表内容限制最大宽度，图表高度随窗口高度调整；低屏幕高度压缩标题与指标留白。长报表沿页面滚动，浏览器缩放或窗口大小改变后重绘所有页面。
+- 新增 `responsive-layout.css` 作为最后加载的布局样式。保留原有配色和源数据。
 
-## Important source-grain limitations
+验证：运行 `node tests/report-behavior.cjs` 检查月份默认值、月份天数、折叠状态、占比和分类点击，以及 CAPEX 中英文悬停和分组。该检查不替代浏览器视觉验收。
 
-- The source workbooks are snapshots, so changes in Excel or Power BI do not automatically refresh the page. Rerun the data generator after updating a workbook.
-- The main maintenance workbook contains 32 summary rows without a posting period or detail dimensions. They are excluded from filterable actual-cost metrics to avoid assigning aggregate values to invented categories.
-- BU budget rows labeled `Unmapped` are excluded from mapped budget comparisons. The annual budget is spread evenly across 12 months for monthly comparisons and month-filtered KPI totals because the local BU files do not contain a monthly budget.
-- BU budget data has no order-type dimension. In the order-type chart, the comparison series uses the `Planned costs` field from `Work Order Cost.xlsx`; it is source-backed planned cost, not a separately supplied BU budget by order type.
-- The `Work Order` page uses the monthly-by-plant `../WO/2026 WO.xlsx` source. The `Daily WO` page uses the daily-by-state `Summary` sheet in `../WO/2026 WO Schedule.xlsx`; its completed-rate line is Done WO / Total WO, with zero returned when the total is zero.
-- For the Daily WO page, daily Total WO is recalculated from the four Summary state rows because several cached workbook totals do not reconcile with their component states; Completed Rate then follows Done WO / Total WO.
-- The `Work Order` page recreates the source report's three monthly stacked-column/line visuals: all work orders, critical work orders, and preventive work orders. The columns stack overdue, completed late, and completed on time; the line uses on-time / (on-time + late + overdue) on a percentage axis.
-- CAPEX Overview has seven source-mapped KPI cards. Total Budget comes from the `Total BU` row in the status workbook. Approved Budget and Not Yet Occupied use the WBS projects listed in the status workbook's `Overview CJE0` sheet. PO, GR, and UnGR cards sum their respective 2026 fields across all CJE0 project rows; PR Value sums ME5A `Total Value`. Occupied is GR + UnGR + PR. Its gauge compares Approved Budget to Total Budget. The project chart uses WBS rows in `Overview CJE0`, joining CJE0's 2026 GR/UnGR/Budget values to ME5A PR amounts using the project WBS embedded in the ME5A short text. It plots UnGR (dark navy), GR (light lavender), and PR (orange) as stacked columns, purple Occupied points (no connecting line), and red error bars from Occupied to the CJE0 `Budg in OC--2026` value; the numeric error-bar labels show `Budget - Occupied`. The x-axis label is `WBS + " " + project name`. Nonzero requisitions that cannot be matched to a CJE0 WBS stop data generation rather than being silently dropped. Visible overview amounts use M units (sub-million KPI amounts use K); source values remain in CNY and are converted only for display when CHF is selected.
-- CAPEX GR Plan follows the supplied report: monthly Act GR YTD sums CJ74 `Vbl. value/Obj. curr` where `Name of offsetting account` is `GR / IR IM&S`; YTD sums ME2N still-to-be-delivered value divided by the matching currency rate; YTD GR is their sum; Budget and the gauge maximum sum CJE0 `Budg in OC--2026` and `Assigned--2026` across project rows. The UnGR gauge and its table amounts/totals use converted CNY values. The table filters ME2N rows to `Still to be delivered (value) > 0`, derives WBS from the first 12 characters of `Short Text`, and forecasts FCT GR month with a two-month `EDATE` offset from `Document Date`. The local Currency sheet does not contain EUR, so the EUR rate shown in the supplied report image (0.1308) is used; any other nonzero currency without a rate stops generation with an explicit error. CAPEX project summary values are shown as supplied by their mapped source tables.
-- Energy trends use the workbook's head-meter values. Intensity divides by reported production volume; the chart normalizes each series to compare trends and tooltips show source values.
-- Breakdown charts use the source `生产记录停机时间` field. The monthly chart shows monthly downtime and a `Downtime YTD` line calculated for the current year through each displayed month, matching the report's `ALL(Breakdown)` filter behavior. A dotted 14-hour reference line separates red monthly bars above 14 from light-blue bars at or below 14; the equipment chart sums the same downtime field by equipment name and uses dark navy bars.
-- Filter values are multi-select. When English is selected, dashboard interface text is translated and unsupported Chinese-only source labels are shown as `Source text` rather than left in Chinese.
+## 打开网站
 
-## Regenerate the data snapshot
+完整解压后打开 `index.html`。保留脚本、样式、数据和图片的相对位置，无需安装依赖。
 
-Requirements: Python 3 and pandas with an Excel reader such as openpyxl.
+可选本机预览：在 `optimized-site` 目录运行 `node serve.mjs`，访问 http://localhost:8765，按 Ctrl+C 停止。
 
-```powershell
-Set-Location "C:\Users\bais\OneDrive - Givaudan International SA\Documents\Engineering Operations Center\powerbi-html"
-python .\build_data.py
-```
+## 初版配色恢复
 
-This writes `dashboard-data.js`, a local data snapshot used by the page. It includes the source rows required for work-order and purchasing tables; keep the project folder on an access-controlled drive.
+依据最初的 `engineering-optimized-complete.zip` 恢复：品牌紫色、深蓝数据柱、浅蓝辅助系列、橙色累计趋势、紫色预算线，以及原来的工单与能源分类颜色。最新高对比覆盖已停用。
 
-## Open the page
+仅恢复配色，保留现有导航、月份展开、无横向滚动表格、完整移动端图表及其他交互。新增视图沿用初版同类指标的颜色。颜色覆盖文件为 `original-palette.css`。
 
-The dashboard uses local JavaScript and CSS and requires no login, chart CDN, or Power BI service:
+## 已保留的布局调整
 
-```powershell
-Set-Location "C:\Users\bais\OneDrive - Givaudan International SA\Documents\Engineering Operations Center\powerbi-html"
-python -m http.server 8000
-```
+- 故障记录清单删除“停机小时 (MTH)”列，保留记录停机时间；桌面 8 列自动换行，移动端按条目完整呈现，无表格内部横向滚动。
+- 故障设备停机柱图加高，所有设备名称完整显示；图表颜色采用初版对应指标配色。
+- 维护成本总览的月度预算与实际成本恢复为折线图；年度实际成本 / kg 折线继续保留。
+- 区域维护成本的设备排名表移到所有图表下方。
+- 合同明细默认按即将到期、有效、已过期排列，同状态再按剩余天数排序。
+- 每日工单保留一张汇总大表，12 个月各有独立收纳箭头，默认折叠，点击展开该月完整日期；提供全部展开、全部收起。
+- CAPEX 项目占用图加高；收货计划保留左窄右宽布局，将左侧未交付采购订单改为金额圆环，补充占已分配金额的比例，平衡上下空间。
+- 桌面保留清晰的顶部导航与窄版单列报表菜单；手机使用汉堡菜单，按模块展开进入报表。
+- 手机的每个对比图仅使用一张完整图，类别不再拆成多段；预算为宽底柱，实际为窄前柱，保留具体差额与执行率切换，无图表内部滚动条。
 
-Open `http://localhost:8000/`. You can also open `index.html` directly in a modern browser.
+## 保留功能
 
-## Project files
+首页只提供四个业务模块入口，点击直达对应模块第一个报表。成本要素仅显示内部人工、外部服务、内部材料、外部材料四类。工单执行各图独占一行，GR 计划表单独占一行。
 
-- `index.html` — report navigation and view layouts
-- `styles.css` — responsive report styling
-- `app.js` — chart rendering, navigation, filters, and interactions
-- `build_data.py` — reads and aggregates the local Excel sources
-- `dashboard-data.js` — generated data snapshot
-- `img/` — Givaudan menu/page logomarks and favicon
+点击年份、月份或分类可联动筛选，再次选择或重置可恢复。支持双语、币种切换、搜索、收藏、图表放大、SVG / CSV 导出。按 `/` 或 Ctrl+K 搜索，Esc 关闭菜单。月份折叠不影响每日汇总完整 CSV 导出。
+
+差额标签为“实际 − 预算”，正值表示超支。指标卡“预算差额”沿用原口径“预算 − 实际”。未映射、空白等占位类别不显示在图表分类中，源数据不改写，汇总保持原口径。
+
+## 文件
+
+| 文件 | 用途 |
+| --- | --- |
+| index.html | 首页及十个报表结构 |
+| app.js | 数据汇总、筛选与业务逻辑 |
+| comparison-charts.js | 重叠柱、年度成本 / kg、差额和执行率 |
+| report-refinements.js | 月度折线、CAPEX 圆环和可折叠月份汇总表 |
+| portal.js | 桌面与手机导航、搜索、收藏、放大、导出 |
+| home-effects.js | 首页双语、平滑滚动和返回顶部 |
+| styles.css / experience.css / portal.css | 基础视觉 |
+| refinement.css / report-layout.css / revision-v7.css | 图表、报表与响应式布局 |
+| original-palette.css | 首版配色覆盖 |
+| dashboard-data.js | 完整本地数据快照 |
+| img/ | 本地品牌与园区图片 |
+| serve.mjs | 可选本机预览服务 |
+| build_data.py / DATA-SOURCES.md | 原数据生成脚本、来源及口径说明 |
+
+## 验证
+
+V9 恢复初版颜色后检查桌面与手机显示，并验证核心图表配色与最初代码一致。
+
+完成脚本语法检查，并在桌面及 390px 手机视口验证本次布局与交互：单图完整显示、汉堡菜单导航、故障表 8 列无横向滚动、27 个完整设备标签、区域表格顺序、即将到期合同优先、月份独立及批量展开、CAPEX 左右比例与项目图高度。
+
+每日汇总保留全部 365 天，折叠只控制显示。数据快照保持不变。原 Excel 工作簿不包含在代码包内，刷新数据请参照 `DATA-SOURCES.md`。

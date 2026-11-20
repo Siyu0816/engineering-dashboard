@@ -60,6 +60,14 @@
     ["工单执行", "Work Order Performance"],
     ["每日工单", "Daily Work Orders"],
     ["能源使用", "Energy"],
+    ["电力/kwh", "Power/kwh"],
+    ["天然气/m3", "Natural Gas/m3"],
+    ["蒸汽/ton", "Steam/ton"],
+    ["氮气/t", "Nitrogen/t"],
+    ["生活污水/t", "Domestic waste water/t"],
+    ["工业废水/t", "Industry waste water/t"],
+    ["城市用水/m3", "City water/m3"],
+    ["按月份和年份", "by Month and Year"],
     ["工程部运营中心", "Engineering Department Operations Center"],
     ["维护、投资、可靠性与能源运营总览", "Maintenance, investment, reliability and energy overview"],
     ["维护成本、预算执行和工单构成", "Maintenance cost, budget performance and work-order mix"],
@@ -187,6 +195,7 @@
     ["全部设备", "All Equipment"],
     ["选择筛选项或点击图表可联动其他视觉对象", "Choose a filter or select a chart to cross-filter visuals"],
     ["重置筛选", "Reset Filters"],
+    ["↺ 重置筛选", "↺ Reset Filters"],
     ["离线报表", "Offline Report"],
     ["本地数据快照", "Local Data Snapshot"],
     ["无需登录 · 无服务端请求", "No login · No server requests"],
@@ -441,9 +450,11 @@
   const originalAttributes = new WeakMap();
   const state = {
     view: "home",
+    expandedHomeGroup: null,
     language: "zh",
     currency: "CNY",
     year: ["2026"],
+    yearFilterTouched: false,
     capexPlanYear: "2026",
     month: [],
     scope: [],
@@ -456,9 +467,10 @@
     workOrderQuery: "",
     spendingDetail: null
   };
+  const viewYearFilters = new Map();
   const views = {
     home: {
-      title: "Engineering Department Operations Center",
+      title: "工程部运营中心",
       breadcrumb: "首页",
       description: "维护、投资、可靠性与能源运营总览"
     },
@@ -513,17 +525,49 @@
       description: "能源消耗、生产量及单位产量能耗"
     }
   };
-  const navItems = [
-    ["overview", "维护成本总览", "Overview-MC", "◫"],
-    ["area", "区域维护成本", "Area-MC", "⌖"],
-    ["details", "维护成本明细", "Others-MC", "▤"],
-    ["contracts", "维护合同", "Contract-MC", "▧"],
-    ["capex", "CAPEX 总览", "CAPEX Overview", "▥"],
-    ["capexPlan", "CAPEX项目计划", "CAPEX GR Plan", "▦"],
-    ["breakdown", "设备故障分析", "Breakdown", "⌁"],
-    ["workOrder", "工单执行", "Work Order", "✓"],
-    ["dailyWO", "每日工单", "Daily WO", "▣"],
-    ["energy", "能源使用", "Energy", "ϟ"]
+  const homeGroups = [
+    {
+      id: "cost",
+      title: "成本概览",
+      subtitle: "Cost Overview",
+      icon: "▣",
+      items: [
+        ["overview", "维护成本总览", "Overview-MC"],
+        ["area", "区域维护成本", "Area-MC"],
+        ["details", "维护成本明细", "Others-MC"],
+        ["contracts", "维护合同", "Contract-MC"]
+      ]
+    },
+    {
+      id: "maintenance",
+      title: "维护看板",
+      subtitle: "Maintenance Dashboard",
+      icon: "⚒",
+      items: [
+        ["breakdown", "设备故障分析", "Breakdown"],
+        ["workOrder", "工单执行", "Work Order"],
+        ["dailyWO", "每日工单", "Daily WO"]
+      ]
+    },
+    {
+      id: "capex",
+      title: "CAPEX绩效",
+      subtitle: "CAPEX Performance",
+      icon: "▤",
+      items: [
+        ["capex", "CAPEX 总览", "CAPEX Overview"],
+        ["capexPlan", "CAPEX项目计划", "CAPEX GR Plan"]
+      ]
+    },
+    {
+      id: "energy",
+      title: "能源看板",
+      subtitle: "Energy Dashboard",
+      icon: "⚛",
+      items: [
+        ["energy", "能源使用", "Energy"]
+      ]
+    }
   ];
   const svgNS = "http://www.w3.org/2000/svg";
 
@@ -563,6 +607,10 @@
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
     let node = walker.nextNode();
     while (node) {
+      if (node.parentElement.closest('[data-portal], [data-zh], #exp-scene-desc, #exp-scene-visual')) {
+        node = walker.nextNode();
+        continue;
+      }
       if (!originalTextNodes.has(node)) originalTextNodes.set(node, node.nodeValue);
       const original = originalTextNodes.get(node);
       const match = original.match(/^(\s*)([\s\S]*?)(\s*)$/);
@@ -574,6 +622,7 @@
     }
 
     document.querySelectorAll("[aria-label], [placeholder], [title]").forEach(elementNode => {
+      if (elementNode.closest('[data-portal]')) return;
       if (!originalAttributes.has(elementNode)) {
         originalAttributes.set(elementNode, {
           ariaLabel: elementNode.getAttribute("aria-label"),
@@ -597,12 +646,14 @@
     });
 
     document.documentElement.lang = state.language === "zh" ? "zh-CN" : "en";
-    const languageButton = document.getElementById("language-toggle");
-    languageButton.textContent = state.language === "zh" ? "English" : "Switch to Chinese";
-    languageButton.setAttribute(
-      "aria-label",
-      state.language === "zh" ? "Switch to English" : "Switch to Chinese"
-    );
+    const langLabel = state.language === "zh" ? "English" : "中文";
+    const langAria = state.language === "zh" ? "Switch to English" : "Switch to Chinese";
+    for (const btnId of ["language-toggle", "home-language-toggle"]) {
+      const btn = document.getElementById(btnId);
+      if (!btn) continue;
+      btn.textContent = langLabel;
+      btn.setAttribute("aria-label", langAria);
+    }
   }
 
   function translateText(value) {
@@ -636,7 +687,7 @@
         .replace(/[\p{Script=Han}\u3000-\u303f\uff00-\uffef]+/gu, " ")
         .replace(/\s+/g, " ")
         .trim();
-      return englishText || "Source text";
+      return englishText || value;
     }
     return value;
   }
@@ -796,6 +847,12 @@
     return `${(Number(value) || 0).toFixed(1)}%`;
   }
 
+  const mappedCostElements=new Set(['Internal Labor','External Service','Internal Material','External Material']);
+  function isMappedLabel(value) {
+    const s=String(value??'').trim();
+    return !!s&&!/^(unmapped|unknown|undefined|null|nan|unassigned|not mapped|not specified|source text|\(blank\)|未映射|未分配|未匹配|设备未匹配|未指定|未知|空白)$/i.test(s);
+  }
+
   function sortedUnique(values) {
     return [...new Set(values.filter(Boolean))].sort((a, b) =>
       String(a).localeCompare(String(b), "zh-CN", { numeric: true })
@@ -806,6 +863,8 @@
     select.multiple = true;
     select.replaceChildren(new Option(allLabel, "all"));
     for (const value of values) {
+      if (!isMappedLabel(typeof value==='object'?value.value:value)) continue;
+      if (select.id==='cost-element-filter'&&!mappedCostElements.has(typeof value==='object'?value.value:value)) continue;
       if (typeof value === "string") {
         select.add(new Option(value, value));
       } else {
@@ -858,6 +917,7 @@
       if (checkbox.value === "all" && !checkbox.checked && state[field].length === 0) {
         state[field] = [];
       }
+      if (field === "year") state.yearFilterTouched = true;
       state.selection = null;
       render();
     });
@@ -1020,7 +1080,8 @@
   function aggregate(rows, field, valueField = "actual") {
     const grouped = new Map();
     for (const row of rows) {
-      const key = String(row[field] || "Unmapped");
+      if (!isMappedLabel(row[field])) continue;
+      const key = String(row[field]);
       grouped.set(key, (grouped.get(key) || 0) + (Number(row[valueField]) || 0));
     }
     return [...grouped].map(([label, value]) => ({ label, value }));
@@ -1037,6 +1098,7 @@
     }
     if (field === "year") {
       state.year = state.selection ? [String(value)] : [];
+      state.yearFilterTouched = true;
     }
     if (field === "month") {
       state.month = state.selection ? [String(value)] : [];
@@ -1093,7 +1155,7 @@
   function addTooltip(node, label, value, formatter = compactMoney) {
     const text = `${translateText(label)}: ${formatter(value)}`;
     node.setAttribute("data-tooltip", text);
-    node.append(svgElement("title", {}, text));
+    node.setAttribute("aria-label", text);
   }
 
   function showChartTooltip(target, clientX, clientY) {
@@ -1138,7 +1200,7 @@
   function renderBars(containerId, rows, filterField, options = {}) {
     const container = document.getElementById(containerId);
     const values = rows
-      .filter(item => Number.isFinite(Number(item.value)))
+      .filter(item => isMappedLabel(item.key??item.label)&&isMappedLabel(item.label)&&Number.isFinite(Number(item.value)))
       .slice();
     if (options.sort !== false) values.sort((a, b) => b.value - a.value);
     if (!values.length) return drawEmpty(container);
@@ -1149,7 +1211,7 @@
     const right = 12;
     const top = 26;
     const longestLabel = Math.max(...values.map(item => String(item.label).length));
-    const bottom = longestLabel > 12 ? Math.min(104, Math.max(78, height * 0.32)) : 46;
+    const bottom = options.showAllLabels ? Math.max(170,longestLabel*6+28) : longestLabel > 12 ? Math.min(104, Math.max(78, height * 0.32)) : 46;
     const plotHeight = height - top - bottom;
     const plotWidth = width - left - right;
     const minimum = Math.min(0, ...values.map(item => item.value));
@@ -1176,10 +1238,7 @@
       1,
       Math.ceil(values.length / Math.max(1, Math.floor(plotWidth / 72)))
     );
-    const labelStride = Math.max(
-      1,
-      Math.ceil(values.length / Math.max(1, Math.floor(plotWidth / 62)))
-    );
+    const labelStride = options.showAllLabels ? 1 : Math.max(1,Math.ceil(values.length / Math.max(1,Math.floor(plotWidth/62))));
     values.forEach((item, index) => {
       const center = left + (plotWidth * (index + 0.5)) / values.length;
       const barWidth = Math.max(2, Math.min(38, (plotWidth / values.length) * 0.76));
@@ -1226,12 +1285,22 @@
           y: height - bottom + 11,
           "text-anchor": "end",
           class: "svg-category",
-          transform: `rotate(-45 ${center} ${height - bottom + 11})`
-        }, item.label.length > 28 ? `${item.label.slice(0, 25)}…` : item.label);
+          transform: `rotate(${options.showAllLabels?-90:-45} ${center} ${height - bottom + 11})`
+        }, !options.showAllLabels&&item.label.length > 28 ? `${item.label.slice(0, 25)}…` : item.label);
         category.setAttribute("data-tooltip", translateText(item.label));
         svg.append(category);
       }
     });
+  }
+
+  function renderComparison(container, rows, options) {
+    const comparisonMoney = value => {
+      const converted = convertCurrency(value);
+      const large = Math.abs(converted) >= 1000000;
+      const divisor = large ? 1000000 : 1000;
+      return currencyPrefix() + new Intl.NumberFormat(state.language==='zh'?'zh-CN':'en-US', {maximumFractionDigits:large?2:1}).format(converted/divisor) + (large?'M':'K');
+    };
+    window.EngineeringComparison.render(container, rows.filter(row=>isMappedLabel(row.key)&&isMappedLabel(row.label)), {...options,language:state.language,formatMoney:comparisonMoney,formatExact:value=>currencyPrefix()+new Intl.NumberFormat(state.language==='zh'?'zh-CN':'en-US',{minimumFractionDigits:2,maximumFractionDigits:2}).format(convertCurrency(value)),formatAxis:axisMillionsMoney});
   }
 
   function renderAnnualChart() {
@@ -1263,152 +1332,7 @@
         : null;
       return [year, costPerKg];
     }));
-    const availableCostPerKg = [...costPerKgByYear.values()]
-      .filter(value => value !== null && Number.isFinite(value));
-    const rawMinimum = Math.min(0, ...availableCostPerKg);
-    const rawMaximum = Math.max(0, ...availableCostPerKg);
-    const costPerKgAxisMin = rawMinimum < 0
-      ? Math.floor(rawMinimum * 1.1 * 20) / 20
-      : 0;
-    const costPerKgAxisMax = rawMaximum > 0
-      ? Math.ceil(rawMaximum * 1.1 * 20) / 20
-      : 1;
-    const costPerKgAxisRange = costPerKgAxisMax - costPerKgAxisMin || 1;
-
-    const width = Math.max(container.clientWidth - 14, 300);
-    const chartHeight = Math.max(container.clientHeight - 12, 190);
-    const height = chartHeight;
-    const left = 92;
-    const right = 78;
-    const top = 26;
-    const bottom = 34;
-    const plotHeight = height - top - bottom;
-    const plotWidth = width - left - right;
-    const costPerKgBandHeight = plotHeight * .28;
-    const bandGap = 20;
-    const barTop = top + costPerKgBandHeight + bandGap;
-    const barHeight = Math.max(1, height - bottom - barTop);
-    const barBottom = height - bottom;
-    const maximum = Math.max(1, ...years.flatMap(year => [
-      actualByYear.get(year) || 0,
-      budgetByYear.get(year) || 0
-    ]));
-    const svg = createSvg(container, width, height, "年度预算与实际成本");
-    const costPerKgPoints = [];
-    for (let line = 0; line <= 4; line++) {
-      const costPerKgValue = costPerKgAxisMax - (costPerKgAxisRange * line) / 4;
-      const axisY = top + (costPerKgBandHeight * line) / 4;
-      const y = barTop + (barHeight * line) / 4;
-      addGrid(svg, left, y, width - right);
-      svg.append(svgElement("text", {
-        x: left - 7, y: y + 3, "text-anchor": "end", class: "svg-value"
-      }, axisMillionsMoney(maximum * (1 - line / 4))));
-      svg.append(svgElement("text", {
-        x: width - right + 7,
-        y: axisY + 3,
-        "text-anchor": "start",
-        class: "svg-value"
-      }, `${currencyPrefix()}${costPerKgValue.toFixed(2)}`));
-    }
-    const rightAxisTitleX = width - 13;
-    const rightAxisTitleY = top + costPerKgBandHeight / 2;
-    svg.append(svgElement("text", {
-      x: rightAxisTitleX,
-      y: rightAxisTitleY,
-      "text-anchor": "middle",
-      class: "svg-category svg-axis-title",
-      transform: `rotate(90 ${rightAxisTitleX} ${rightAxisTitleY})`
-    }, translateText("实际成本 / kg")));
-
-    const slot = plotWidth / years.length;
-    const budgetWidth = Math.min(68, slot * .72);
-    const actualWidth = Math.min(18, slot * .2);
-    years.forEach((year, index) => {
-      const center = left + slot * (index + .5);
-      const budget = budgetIsBlank ? null : budgetByYear.get(year) || 0;
-      const actual = actualByYear.get(year) || 0;
-      const variance = budget === null ? null : budget - actual;
-      const costPerKg = costPerKgByYear.get(year);
-      if (costPerKg !== null && costPerKg !== undefined) {
-        costPerKgPoints.push({
-          x: center,
-          y: top + costPerKgBandHeight -
-            ((costPerKg - costPerKgAxisMin) / costPerKgAxisRange) * costPerKgBandHeight,
-          value: costPerKg,
-          year
-        });
-      }
-      const budgetHeight = budget === null ? 0 : Math.max(0, (budget / maximum) * barHeight);
-      const actualHeight = Math.max(0, (actual / maximum) * barHeight);
-      const budgetBar = svgElement("rect", {
-        x: center - budgetWidth / 2,
-        y: barBottom - budgetHeight,
-        width: budgetWidth,
-        height: budgetHeight,
-        rx: 2,
-        fill: "#e7e9f4",
-        class: "svg-bar"
-      });
-      if (budget !== null) addTooltip(budgetBar, `${year} 预算`, budget);
-      const actualBar = svgElement("rect", {
-        x: center - actualWidth / 2,
-        y: barBottom - actualHeight,
-        width: actualWidth,
-        height: actualHeight,
-        rx: 1,
-        fill: budget !== null && actual > budget ? "#df4658" : "#11117a",
-        class: "svg-bar"
-      });
-      addTooltip(actualBar, `${year} 实际`, actual);
-      svg.append(budgetBar, actualBar);
-      if (variance !== null) {
-        appendDataLabel(svg, {
-          x: center, y: Math.max(top + 12, barBottom - Math.max(actualHeight, budgetHeight) - 16),
-          "text-anchor": "middle",
-          class: "svg-value",
-          fill: variance < 0 ? "#df4658" : "#24945a"
-        }, variance, `${variance < 0 ? "−" : "+"}${compactMoney(Math.abs(variance))}`);
-      }
-      const label = svgElement("text", {
-        x: center, y: height - 15, "text-anchor": "middle", class: "svg-category"
-      }, year);
-      label.style.cursor = "pointer";
-      label.addEventListener("click", () => {
-        state.year = state.year.length === 1 && state.year[0] === year
-          ? []
-          : [year];
-        render();
-      });
-      svg.append(label);
-    });
-
-    const costPerKgPath = costPerKgPoints.map((point, index) =>
-      `${index ? "L" : "M"}${point.x},${point.y}`
-    ).join(" ");
-    svg.append(svgElement("path", {
-      d: costPerKgPath,
-      fill: "none",
-      stroke: "#e3ad00",
-      "stroke-width": 2
-    }));
-    for (const point of costPerKgPoints) {
-      const circle = svgElement("circle", {
-        cx: point.x, cy: point.y, r: 3, fill: "#e3ad00"
-      });
-      addTooltip(
-        circle,
-        state.language === "zh"
-          ? `${point.year}年实际成本 / kg`
-          : `${point.year} Actual Cost / kg`,
-        point.value,
-        value => `${currencyPrefix()}${Number(value).toFixed(4)} / kg`
-      );
-      svg.append(circle);
-      appendDataLabel(svg, {
-        x: point.x, y: point.y - 7, "text-anchor": "middle", class: "svg-value"
-      }, point.value, point.value.toFixed(2));
-    }
-    addAxisTitles(svg, width, height, "年份");
+    renderComparison(container, years.map(year => ({key:year,label:year,budget:budgetIsBlank?null:(budgetByYear.get(year)||0),actual:actualByYear.get(year)||0,extra:costPerKgByYear.get(year)})), {kind:'annual',onSelect:year=>{state.year=state.year.length===1&&state.year[0]===year?[]:[year];render();},extraLabel:state.language==='zh'?'实际成本 / kg':'Actual cost / kg',extraFormat:value=>value===null?'—':currencyPrefix()+value.toFixed(3)});
   }
 
   function renderBudgetActualColumns(containerId, categoryField, useOrderTypeBudget = false) {
@@ -1443,7 +1367,7 @@
       : categoryField === "costType"
         ? ["PM", "CM", "Improvement"]
         : [];
-    const labels = [...actual.keys()].filter(Boolean).sort((a, b) => {
+    const labels = [...new Set([...actual.keys(), ...budget.keys()])].filter(label=>isMappedLabel(label)&&(categoryField!=='costElement'||mappedCostElements.has(label))).sort((a, b) => {
       const aIndex = categoryOrder.indexOf(a);
       const bIndex = categoryOrder.indexOf(b);
       if (aIndex >= 0 || bIndex >= 0) {
@@ -1454,111 +1378,7 @@
     });
     if (!labels.length) return drawEmpty(container);
 
-    const width = Math.max(container.clientWidth - 14, 300);
-    const height = Math.max(container.clientHeight - 12, 190);
-    const left = 88;
-    const right = 12;
-    const top = 30;
-    const longestLabel = Math.max(...labels.map(label => label.length));
-    const bottom = longestLabel > 9 ? 84 : 42;
-    const plotHeight = height - top - bottom;
-    const plotWidth = width - left - right;
-    const maximum = Math.max(1, ...labels.flatMap(label => [
-      actual.get(label) || 0,
-      budget.get(label) || 0
-    ]));
-    const svg = createSvg(
-      container,
-      width,
-      height,
-      useOrderTypeBudget ? "工单类型预算与实际成本" : "成本要素预算与实际成本"
-    );
-    for (let tick = 0; tick <= 2; tick++) {
-      const y = top + plotHeight * tick / 2;
-      addGrid(svg, left, y, width - right);
-      svg.append(svgElement("text", {
-        x: left - 6, y: y + 3, "text-anchor": "end", class: "svg-value"
-      }, axisMillionsMoney(maximum * (1 - tick / 2))));
-    }
-    const slot = plotWidth / labels.length;
-    labels.forEach((label, index) => {
-      const center = left + slot * (index + .5);
-      const budgetValue = budgetIsBlank ? null : budget.get(label) || 0;
-      const actualValue = actual.get(label) || 0;
-      const variance = budgetValue === null ? null : budgetValue - actualValue;
-      const budgetHeight = budgetValue === null ? 0 : budgetValue / maximum * plotHeight;
-      const actualHeight = actualValue / maximum * plotHeight;
-      const budgetWidth = Math.min(76, slot * .76);
-      const actualWidth = Math.min(16, slot * .16);
-      const budgetBar = svgElement("rect", {
-        x: center - budgetWidth / 2,
-        y: top + plotHeight - budgetHeight,
-        width: budgetWidth,
-        height: budgetHeight,
-        fill: "#e7e9f4",
-        class: "svg-bar",
-        tabindex: "0",
-        role: "button"
-      });
-      if (budgetValue !== null) {
-        addTooltip(
-          budgetBar,
-          `${translateText(label)} ${translateText("Budget")}`,
-          budgetValue
-        );
-      }
-      const actualBar = svgElement("rect", {
-        x: center - actualWidth / 2,
-        y: top + plotHeight - actualHeight,
-        width: actualWidth,
-        height: actualHeight,
-        fill: budgetValue !== null && actualValue > budgetValue ? "#df4658" : "#11117a",
-        class: "svg-bar",
-        tabindex: "0",
-        role: "button"
-      });
-      addTooltip(
-        actualBar,
-        `${translateText(label)} ${translateText("Actual Cost")}`,
-        actualValue
-      );
-      for (const bar of [budgetBar, actualBar]) {
-        bar.addEventListener("click", () => setSelection(categoryField, label));
-        bar.addEventListener("keydown", event => {
-          if (event.key === "Enter" || event.key === " ") {
-            event.preventDefault();
-            setSelection(categoryField, label);
-          }
-        });
-      }
-      svg.append(budgetBar, actualBar);
-      if (variance !== null) {
-        appendDataLabel(svg, {
-          x: center,
-          y: Math.max(12, top + plotHeight - Math.max(actualHeight, budgetHeight) - 16),
-          "text-anchor": "middle",
-          class: "svg-value",
-          fill: variance < 0 ? "#df4658" : "#24945a"
-        }, variance, `${variance < 0 ? "−" : "+"}${compactMoney(Math.abs(variance))}`);
-      }
-      const category = svgElement("text", {
-        x: center,
-        y: height - bottom + 10,
-        "text-anchor": longestLabel > 9 ? "end" : "middle",
-        class: "svg-category"
-      }, label);
-      if (longestLabel > 9) {
-        category.setAttribute("transform", `rotate(-45 ${center} ${height - bottom + 10})`);
-      }
-      category.setAttribute("data-tooltip", translateText(label));
-      svg.append(category);
-    });
-    const axisLabel = categoryField === "costType"
-      ? "工单类型"
-      : categoryField === "scope"
-        ? "区域"
-        : "成本要素";
-    addAxisTitles(svg, width, height, axisLabel);
+    renderComparison(container, labels.map(label=>({key:label,label:translateText(label),budget:budgetIsBlank?null:(budget.get(label)||0),actual:actual.get(label)||0})), {kind:'horizontal',onSelect:label=>setSelection(categoryField,label)});
   }
 
   function renderMonthlyBudgetActual() {
@@ -1574,78 +1394,12 @@
     const months = [...actualByMonth.keys()].filter(month => month >= 1 && month <= 12).sort((a, b) => a - b);
     if (!months.length) return drawEmpty(container);
 
-    const width = Math.max(container.clientWidth - 14, 300);
-    const height = Math.max(container.clientHeight - 34, 175);
-    const left = 86;
-    const right = 14;
-    const top = 26;
-    const bottom = 34;
-    const plotHeight = height - top - bottom;
-    const plotWidth = width - left - right;
-    const maximum = Math.max(
-      1,
-      monthlyBudget || 0,
-      ...months.map(month => actualByMonth.get(month) || 0)
-    );
-    const svg = createSvg(container, width, height, "月度预算与实际成本");
-    for (let tick = 0; tick <= 3; tick++) {
-      const y = top + plotHeight * tick / 3;
-      addGrid(svg, left, y, width - right);
-      svg.append(svgElement("text", {
-        x: left - 6, y: y + 3, "text-anchor": "end", class: "svg-value"
-      }, axisMillionsMoney(maximum * (1 - tick / 3))));
-    }
-    const pointX = index => left + (months.length === 1 ? plotWidth / 2 : plotWidth * index / (months.length - 1));
-    const pointY = value => top + plotHeight - value / maximum * plotHeight;
-    const actualPath = months.map((month, index) =>
-      `${index ? "L" : "M"}${pointX(index)},${pointY(actualByMonth.get(month) || 0)}`
-    ).join(" ");
-    svg.append(svgElement("path", {
-      d: actualPath, fill: "none", stroke: "#11117a", "stroke-width": 2.4
-    }));
-    if (monthlyBudget !== null) {
-      const budgetY = pointY(monthlyBudget);
-      svg.append(svgElement("line", {
-        x1: left, y1: budgetY, x2: width - right, y2: budgetY,
-        stroke: "#c5cce9", "stroke-width": 3, "stroke-dasharray": "3 4"
-      }));
-    }
-    months.forEach((month, index) => {
-      const x = pointX(index);
-      const y = pointY(actualByMonth.get(month) || 0);
-      const dot = svgElement("circle", { cx: x, cy: y, r: 3.2, fill: "#11117a" });
-      addTooltip(dot, `${month}月 实际成本`, actualByMonth.get(month) || 0);
-      dot.setAttribute("tabindex", "0");
-      dot.setAttribute("role", "button");
-      dot.addEventListener("click", () => setSelection("month", month));
-      dot.addEventListener("keydown", event => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          setSelection("month", month);
-        }
-      });
-      svg.append(dot);
-      svg.append(svgElement("text", {
-        x, y: height - 15, "text-anchor": "middle", class: "svg-category"
-      }, new Intl.DateTimeFormat(state.language === "zh" ? "zh-CN" : "en", { month: "short" })
-        .format(new Date(2026, month - 1, 1))));
-    });
-    addAxisTitles(svg, width, height, "月份");
-    const legend = element("div", { class: "chart-legend" });
-    const legendItems = [["Actual Cost", "#11117a"]];
-    if (monthlyBudget !== null) legendItems.push(["Budget", "#c5cce9"]);
-    for (const [label, color] of legendItems) {
-      const item = element("span", { class: "legend-item" });
-      item.append(element("i", { class: "legend-swatch", style: `background:${color}` }));
-      item.append(document.createTextNode(label));
-      legend.append(item);
-    }
-    container.append(legend);
-    svg.style.height = `${Math.max(160, container.clientHeight - legend.offsetHeight - 8)}px`;
+    window.EngineeringReportViews.monthly(container,months.map(month=>({key:month,label:new Intl.DateTimeFormat(state.language==='zh'?'zh-CN':'en',{month:'short'}).format(new Date(2026,month-1,1)),budget:monthlyBudget,actual:actualByMonth.get(month)||0})),{language:state.language,money:fullMoney,compact:compactMoney,axis:axisMillionsMoney,onSelect:month=>setSelection('month',month)});
   }
 
   function renderSeriesChart(containerId, rows, series, label, options = {}) {
     const container = document.getElementById(containerId);
+    rows=rows.filter(row=>isMappedLabel(row.label));
     if (!rows.length) return drawEmpty(container);
 
     const width = Math.max(container.clientWidth - 14, 300);
@@ -1831,8 +1585,19 @@
     formatPercentage = percentage
   ) {
     const container = document.getElementById(containerId);
-    const rows = values.filter(item => Number(item.value) > 0);
+    const rows = values.filter(item => isMappedLabel(item.label)&&(filterField!=='costElement'||mappedCostElements.has(item.label))&&Number(item.value)>0);
     if (!rows.length) return drawEmpty(container);
+
+    if (containerId === "small-spending-element-chart" || containerId === "improvement-element-chart") {
+      window.EngineeringReportViews.composition(container, rows.map((item, index) => ({
+        ...item, color: palette[item.label] || colors[index % colors.length]
+      })), {
+        label: translateText(label), totalLabel: translateText("实际成本"),
+        translate: translateText, money: formatAmount, exact: fullMoney, percentage: formatPercentage,
+        onSelect: item => setSelection(filterField, item.key ?? item.label)
+      });
+      return;
+    }
 
     const width = Math.max(container.clientWidth - 14, 260);
     const height = Math.max(container.clientHeight - 12, 190);
@@ -1941,7 +1706,8 @@
   function totalsByDimension(rows, field, valueField = "actual") {
     const values = new Map();
     for (const row of rows) {
-      const key = String(row[field] || "Unmapped");
+      if (!isMappedLabel(row[field])) continue;
+      const key = String(row[field]);
       const current = values.get(key) || { label: key, key, value: 0 };
       current.value += Number(row[valueField]) || 0;
       values.set(key, current);
@@ -1985,8 +1751,10 @@
         }
         for (const header of headers) {
           const value = row[header.key];
-          const rendered = header.render ? header.render(value, row) : String(value ?? "—");
+          const displayValue=(typeof value==='string'&&!isMappedLabel(value))?'—':value;
+          const rendered = displayValue==='—'?'—':header.render ? header.render(value, row) : String(value ?? '—');
           const td = element("td", { class: header.numeric ? "numeric" : "" });
+          td.dataset.label=translateText(header.label);
           if (rendered instanceof Node) {
             td.append(rendered);
           } else {
@@ -2247,7 +2015,14 @@
       label: "合同月度实际成本",
       formatTooltip: compactMoney
     });
-    const visible = contracts.map(contract => {
+    const query = (state.contractQuery || "").trim().toLowerCase();
+    const filteredContracts = query
+      ? contracts.filter(c =>
+          String(c.id || "").toLowerCase().includes(query) ||
+          String(c.name || "").toLowerCase().includes(query)
+        )
+      : contracts;
+    const visible = filteredContracts.map(contract => {
       const status = contractStatus(contract);
       const endDate = new Date(contract.end);
       const remainingDays = Number.isNaN(endDate.getTime())
@@ -2260,6 +2035,8 @@
         remainingDays
       };
     });
+    const priority={'status-expiring':0,'status-active':1,'status-expired':2,'':3};
+    visible.sort((a,b)=>(priority[a.status.className]??3)-(priority[b.status.className]??3)||(a.remainingDays??Infinity)-(b.remainingDays??Infinity)||String(a.id).localeCompare(String(b.id)));
     const container = document.getElementById("contract-table");
     if (!visible.length) return drawEmpty(container, "没有匹配的合同");
     container.replaceChildren(makeTable([
@@ -2311,6 +2088,7 @@
   function groupedPeriod(rows, fields, valueField) {
     const groups = new Map();
     for (const row of rows) {
+      if (fields.some(field=>!isMappedLabel(row[field]))) continue;
       const key = fields.map(field => String(row[field] ?? "")).join("|");
       const item = groups.get(key) || Object.fromEntries(fields.map(field => [field, row[field]]));
       item.value = (item.value || 0) + (Number(row[valueField]) || 0);
@@ -2326,6 +2104,227 @@
     ).sort((a, b) => a.year - b.year || a.month - b.month);
   }
 
+  function renderEnergyUtilityChart(containerId, rows, config) {
+    const container = document.getElementById(containerId);
+    const years = [...new Set(rows.map(row => Number(row.year)))].sort((a, b) => a - b);
+    const chartRows = rows.filter(row => years.includes(Number(row.year)));
+    if (!chartRows.length) return drawEmpty(container);
+
+    const months = state.month.length
+      ? [...new Set(chartRows.map(row => Number(row.month)))].sort((a, b) => a - b)
+      : Array.from({ length: 12 }, (_, index) => index + 1);
+    const rowsByPeriod = new Map(chartRows.map(row => [`${row.year}-${row.month}`, row]));
+    const values = months.flatMap(month => years.map(year => {
+      const row = rowsByPeriod.get(`${year}-${month}`);
+      return row ? Number(row[config.key]) || 0 : 0;
+    }));
+    const intensities = months.flatMap(month => {
+      return years.flatMap(year => {
+      const row = rowsByPeriod.get(`${year}-${month}`);
+        return row && Number(row.production) > 0 ? [Number(row[config.intensityKey]) || 0] : [];
+      });
+    });
+    const maximumConsumption = Math.max(0, ...values) * 1.12 || 1;
+    const minimumIntensityValue = intensities.length ? Math.min(...intensities) : 0;
+    const maximumIntensityValue = intensities.length ? Math.max(...intensities) : 0;
+    const intensitySpan = maximumIntensityValue - minimumIntensityValue;
+    const intensityPadding = intensitySpan * 0.08 || Math.max(maximumIntensityValue * 0.08, 0.00000001);
+    const minimumIntensity = Math.max(0, minimumIntensityValue - intensityPadding);
+    const maximumIntensity = maximumIntensityValue + intensityPadding || 1;
+    const intensityRange = maximumIntensity - minimumIntensity || 1;
+    const width = Math.max(container.clientWidth - 14, 300);
+    const height = Math.max(container.clientHeight - 74, 190);
+    const left = 58;
+    const right = 62;
+    const top = 18;
+    const bottom = 34;
+    const plotBottom = height - bottom;
+    const totalPlotHeight = plotBottom - top;
+    const lineTop = top;
+    const lineHeight = Math.round(totalPlotHeight * 0.5);
+    const sectionGap = Math.max(34, Math.round(totalPlotHeight * 0.1));
+    const barTop = lineTop + lineHeight + sectionGap;
+    const barHeight = plotBottom - barTop;
+    const plotWidth = width - left - right;
+    const categoryWidth = plotWidth / months.length;
+    const barWidth = Math.min(24, categoryWidth * 0.68 / years.length);
+    const colorPalette = ["#cbd3eb", "#403a9c", "#f26736", "#258c77", "#7b637e", "#c19a2b"];
+    const yearColors = Object.fromEntries(years.map((year, index) => [
+      year,
+      ({ 2024: "#cbd3eb", 2025: "#403a9c", 2026: "#f26736" })[year] || colorPalette[index % colorPalette.length]
+    ]));
+    const lineColors = Object.fromEntries(years.map((year, index) => [
+      year,
+      ({ 2024: "#7187bd", 2025: "#19145f", 2026: "#d94d20" })[year] || colorPalette[index % colorPalette.length]
+    ]));
+    const localizedTitle = translateText(config.title);
+    const svg = createSvg(container, width, height, config.title);
+    svg.style.width = "100%";
+    svg.style.height = `${height}px`;
+
+    for (let tick = 0; tick <= 6; tick++) {
+      const ratio = 1 - tick / 6;
+      const lineY = lineTop + lineHeight * (tick / 6);
+      addGrid(svg, left, lineY, width - right);
+      const intensity = minimumIntensity + intensityRange * ratio;
+      svg.append(svgElement("text", {
+        x: width - right + 8,
+        y: lineY + 3,
+        "text-anchor": "start",
+        class: "svg-category"
+      }, formatEnergyIntensity(intensity, intensityRange / 6)));
+    }
+
+    for (let tick = 0; tick <= 4; tick++) {
+      const ratio = 1 - tick / 4;
+      const barY = barTop + barHeight * (tick / 4);
+      addGrid(svg, left, barY, width - right);
+      const consumption = maximumConsumption * ratio;
+      svg.append(svgElement("text", {
+        x: left - 8,
+        y: barY + 3,
+        "text-anchor": "end",
+        class: "svg-category"
+      }, formatEnergyAxisValue(consumption)));
+    }
+
+    const monthFormatter = new Intl.DateTimeFormat(state.language === "zh" ? "zh-CN" : "en-US", {
+      month: "short"
+    });
+    const lineLayers = [];
+    years.forEach((year, yearIndex) => {
+      months.forEach((month, monthIndex) => {
+        const row = rowsByPeriod.get(`${year}-${month}`);
+        const value = row ? Number(row[config.key]) || 0 : 0;
+        if (value <= 0) return;
+        const center = left + categoryWidth * (monthIndex + 0.5);
+        const x = center + (yearIndex - (years.length - 1) / 2) * barWidth;
+        const valueHeight = (value / maximumConsumption) * barHeight;
+        const bar = svgElement("rect", {
+          x: x - barWidth / 2,
+          y: barTop + barHeight - valueHeight,
+          width: barWidth,
+          height: valueHeight,
+          rx: 2,
+          fill: yearColors[year],
+          class: "svg-bar"
+        });
+        addTooltip(bar, `${localizedTitle} · ${monthFormatter.format(new Date(2026, month - 1, 1))} · ${year}`, value,
+          formatEnergyTooltip);
+        svg.append(bar);
+      });
+
+      let path = "";
+      let hasPreviousPoint = false;
+      const linePoints = [];
+      months.forEach((month, monthIndex) => {
+        const row = rowsByPeriod.get(`${year}-${month}`);
+        if (!row || Number(row.production) <= 0) {
+          hasPreviousPoint = false;
+          return;
+        }
+        const value = Number(row[config.intensityKey]) || 0;
+        const point = {
+          x: left + categoryWidth * (monthIndex + 0.5),
+          y: lineTop + lineHeight - ((value - minimumIntensity) / intensityRange) * lineHeight
+        };
+        path += `${hasPreviousPoint ? "L" : "M"}${point.x},${point.y} `;
+        hasPreviousPoint = true;
+        linePoints.push({ ...point, month, value });
+      });
+      if (path) lineLayers.push({ year, path: path.trim(), points: linePoints });
+    });
+
+    lineLayers.forEach(({ year, path, points }) => {
+      svg.append(svgElement("path", {
+        d: path,
+        fill: "none",
+        stroke: "#fff",
+        "stroke-width": 4.5,
+        "stroke-linecap": "round",
+        "stroke-linejoin": "round"
+      }));
+      svg.append(svgElement("path", {
+        d: path,
+        fill: "none",
+        stroke: lineColors[year],
+        "stroke-width": 2.4,
+        "stroke-linecap": "round",
+        "stroke-linejoin": "round"
+      }));
+      points.forEach(point => {
+        const marker = svgElement("circle", {
+          cx: point.x,
+          cy: point.y,
+          r: 3.2,
+          fill: lineColors[year],
+          stroke: "#fff",
+          "stroke-width": 1.2,
+          class: "svg-point"
+        });
+        const intensityLabel = state.language === "zh" ? `${localizedTitle} 每 kg ${year}` : `${localizedTitle} per KG ${year}`;
+        addTooltip(marker, `${intensityLabel} · ${monthFormatter.format(new Date(2026, point.month - 1, 1))}`,
+          point.value, formatEnergyTooltip);
+        svg.append(marker);
+      });
+    });
+
+    months.forEach((month, index) => {
+      const x = left + categoryWidth * (index + 0.5);
+      svg.append(svgElement("text", {
+        x,
+        y: height - 8,
+        "text-anchor": "middle",
+        class: "svg-category"
+      }, monthFormatter.format(new Date(2026, month - 1, 1))));
+    });
+
+    const legend = element("div", { class: "chart-legend multi-series-legend" });
+    for (const year of years) {
+      const entry = element("span", { class: "legend-item" });
+      entry.append(element("i", {
+        class: "legend-swatch column-swatch",
+        style: `background:${yearColors[year]}`
+      }));
+      entry.append(document.createTextNode(String(year)));
+      legend.append(entry);
+    }
+    for (const year of years) {
+      const entry = element("span", { class: "legend-item" });
+      entry.append(element("i", {
+        class: "legend-swatch",
+        style: `background:transparent;border-top:2px solid ${lineColors[year]};border-radius:0;height:0;width:14px`
+      }));
+      entry.append(document.createTextNode(state.language === "zh"
+        ? `${localizedTitle} 每 kg ${year}`
+        : `${localizedTitle} per KG ${year}`));
+      legend.append(entry);
+    }
+    container.insertBefore(legend, svg);
+  }
+
+  function formatEnergyAxisValue(value) {
+    if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
+    if (value >= 1000) return `${(value / 1000).toFixed(value >= 10000 ? 0 : 1)}K`;
+    return numberFormat.format(Math.round(value));
+  }
+
+  function formatEnergyIntensity(value, interval) {
+    const maximumFractionDigits = interval > 0
+      ? Math.min(8, Math.max(0, Math.ceil(-Math.log10(interval)) + 1))
+      : 8;
+    return new Intl.NumberFormat(state.language === "zh" ? "zh-CN" : "en-US", {
+      maximumFractionDigits
+    }).format(value);
+  }
+
+  function formatEnergyTooltip(value) {
+    const maximumFractionDigits = value >= 1000 ? 2 : value >= 0.1 ? 4 : 8;
+    return new Intl.NumberFormat(state.language === "zh" ? "zh-CN" : "en-US", {
+      maximumFractionDigits
+    }).format(value);
+  }
+
   function getSelectedWorkOrderStatus() {
     return data.workOrderStatus.filter(row =>
       matchesSelection(state.year, row.year) &&
@@ -2337,23 +2336,47 @@
     return `${row.year}-${String(row.month).padStart(2, "0")}`;
   }
 
-  function renderHome() {
-    const container = document.getElementById("home-navigation");
-    container.replaceChildren();
-    for (const [view, title, subtitle, icon] of navItems) {
-      const button = element("button", { class: "home-nav-card", type: "button" });
-      button.append(element("span", { class: "home-nav-icon", "aria-hidden": "true" }, icon));
-      const text = element("span");
-      text.append(element("strong", {}, title), element("small", {}, subtitle));
-      button.append(text);
-      button.addEventListener("click", () => {
-        state.view = view;
-        state.spendingDetail = null;
-        render();
-      });
-      container.append(button);
+  function bindCardTilt(card) {
+    const maxAngle = 12;
+    card.addEventListener("pointerenter", () => {
+      card.style.transition = "transform 0.08s ease-out, border-color 0.22s ease, box-shadow 0.22s ease";
+    });
+    card.addEventListener("pointermove", event => {
+      const rect = card.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+      const xRatio = (event.clientX - rect.left) / rect.width;
+      const yRatio = (event.clientY - rect.top) / rect.height;
+      const rotateY = ((xRatio - 0.5) * 2 * maxAngle).toFixed(2);
+      const rotateX = ((0.5 - yRatio) * 2 * maxAngle).toFixed(2);
+      card.style.transform = `perspective(800px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+    });
+    card.addEventListener("pointerleave", () => {
+      card.style.transition = "transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.22s ease, box-shadow 0.22s ease";
+      card.style.transform = "perspective(800px) rotateX(0deg) rotateY(0deg)";
+    });
+  }
+
+
+  function setHomeCardsOpen(open) {
+    const stageEl = document.getElementById("home-stage");
+    const revealEl = document.getElementById("home-cards-reveal");
+    if (!stageEl || !revealEl) return;
+    if (state.view !== "home" || !open) {
+      stageEl.classList.remove("cards-open");
+      revealEl.classList.remove("is-visible");
+    } else {
+      stageEl.classList.add("cards-open");
+      revealEl.classList.add("is-visible");
     }
   }
+
+  function updateHomeScrollReveal() {
+    if (state.view !== "home") {
+      setHomeCardsOpen(false);
+    }
+  }
+
+  function renderHome() { /* The four domain entries are managed by portal.js. */ }
 
   function getEquipmentCostRows() {
     const equipment = new Map(data.equipment.map(row => [row.equipment, row]));
@@ -2386,135 +2409,44 @@
   }
 
   function renderCapexGauge() {
-    const container = document.getElementById("capex-budget-gauge");
-    const { totalBudget, approvedBudget } = data.capex.overview;
-    const width = Math.max(container.clientWidth - 14, 260);
-    const height = Math.max(container.clientHeight - 12, 180);
-    const svg = createSvg(container, width, height, translateText("已批准预算"));
-    const cx = width / 2;
-    const cy = height * .77;
-    const radius = Math.min(width * .39, height * .65);
-    const left = cx - radius;
-    const right = cx + radius;
-    const maxValue = Math.max(totalBudget, approvedBudget, 1);
-    const targetRatio = totalBudget / maxValue;
-    const valueRatio = approvedBudget / maxValue;
-    const arc = `M ${left} ${cy} A ${radius} ${radius} 0 0 1 ${right} ${cy}`;
-    const track = svgElement("path", {
-      d: arc,
-      fill: "none",
-      stroke: "#e7e8f0",
-      "stroke-width": 20,
-      "stroke-linecap": "round",
-      pathLength: 100
-    });
-    const progress = svgElement("path", {
-      d: arc,
-      fill: "none",
-      stroke: "#171276",
-      "stroke-width": 20,
-      "stroke-linecap": "round",
-      pathLength: 100,
-      "stroke-dasharray": `${valueRatio * 100} 100`
-    });
-    addTooltip(progress, translateText("已批准预算"), approvedBudget);
-    svg.append(track, progress);
-
-    const targetAngle = Math.PI + targetRatio * Math.PI;
-    const markerX = cx + Math.cos(targetAngle) * radius;
-    const markerY = cy + Math.sin(targetAngle) * radius;
-    svg.append(svgElement("line", {
-      x1: cx + Math.cos(targetAngle) * (radius - 14),
-      y1: cy + Math.sin(targetAngle) * (radius - 14),
-      x2: cx + Math.cos(targetAngle) * (radius + 14),
-      y2: cy + Math.sin(targetAngle) * (radius + 14),
-      stroke: "#ed6a36",
-      "stroke-width": 3,
-      "stroke-linecap": "round"
-    }));
-    const marker = svgElement("circle", {
-      cx: markerX,
-      cy: markerY,
-      r: 5,
-      fill: "#ed6a36",
-      stroke: "#fff",
-      "stroke-width": 2
-    });
-    addTooltip(marker, translateText("总预算"), totalBudget);
-    svg.append(marker);
-    appendDataLabel(svg, {
-      x: cx,
-      y: cy - 13,
-      "text-anchor": "middle",
-      class: "donut-total"
-    }, approvedBudget, capexOverviewMoney(approvedBudget));
-    appendDataLabel(svg, {
-      x: cx,
-      y: cy + 10,
-      "text-anchor": "middle",
-      class: "svg-category"
-    }, totalBudget ? approvedBudget / totalBudget * 100 : 0,
-    `${(Math.floor((totalBudget ? approvedBudget / totalBudget * 100 : 0) * 10) / 10).toFixed(1)}%`);
-    svg.append(svgElement("text", {
-      x: left,
-      y: cy + 18,
-      "text-anchor": "start",
-      class: "svg-value"
-    }, capexOverviewAxisMoney(0)));
-    svg.append(svgElement("text", {
-      x: right,
-      y: cy + 18,
-      "text-anchor": "end",
-      class: "svg-value"
-    }, capexOverviewMoney(approvedBudget)));
-    appendDataLabel(svg, {
-      x: markerX + 9,
-      y: markerY - 5,
-      "text-anchor": "start",
-      class: "svg-value"
-    }, totalBudget, capexOverviewMoney(totalBudget));
+    const {totalBudget,approvedBudget}=data.capex.overview;
+    window.EngineeringReportViews.approval(document.getElementById('capex-budget-gauge'),totalBudget,approvedBudget,{language:state.language,money:capexOverviewMoney});
   }
 
   function renderCapexDistribution() {
-    renderDonutValues(
-      "capex-distribution-chart",
-      [
-        { label: translateText("未收货金额"), value: data.capex.overview.ungrValue },
-        { label: translateText("采购申请金额"), value: data.capex.overview.prValue },
-        { label: translateText("已收货金额"), value: data.capex.overview.grValue }
-      ],
-      translateText("未收货 / 采购申请 / 已收货"),
-      null,
-      {
-        [translateText("未收货金额")]: "#171276",
-        [translateText("采购申请金额")]: "#ed6a36",
-        [translateText("已收货金额")]: "#cbd2ec"
-      },
-      capexOverviewMoney,
-      capexOverviewPercentage
-    );
+    const overview=data.capex.overview;
+    window.EngineeringReportViews.distribution(document.getElementById('capex-distribution-chart'),[
+      {label:translateText('未收货金额'),value:overview.ungrValue,color:'#171276'},
+      {label:translateText('采购申请金额'),value:overview.prValue,color:'#ed6a36'},
+      {label:translateText('已收货金额'),value:overview.grValue,color:'#cbd2ec'}
+    ],{language:state.language,money:capexOverviewMoney,percentage:capexOverviewPercentage});
   }
 
+  let capexProjectPage = 0;
   function renderCapexProjectChart() {
     const container = document.getElementById("capex-project-chart");
-    const rows = data.capex.overview.projectSummary;
-    if (!rows.length) return drawEmpty(container);
+    const allRows = data.capex.overview.projectSummary;
+    if (!allRows.length) return drawEmpty(container);
+    const pageSize = container.clientWidth < 540 ? 4 : container.clientWidth < 1000 ? 8 : allRows.length;
+    const pageCount = Math.ceil(allRows.length / pageSize);
+    capexProjectPage = Math.min(capexProjectPage, pageCount - 1);
+    const rows = allRows.slice(capexProjectPage * pageSize, (capexProjectPage + 1) * pageSize);
 
-    const width = Math.max(container.clientWidth - 14, 480);
-    const height = Math.max(container.clientHeight - 35, 330);
+    const width = Math.max(container.clientWidth - 14, 280);
+    const height = Math.max(container.clientHeight - (pageCount > 1 ? 76 : 35), 250);
     const left = 78;
     const right = 18;
     const top = 28;
     const bottom = 108;
     const plotHeight = height - top - bottom;
     const plotWidth = width - left - right;
-    const positiveTotals = rows.map(row =>
+    const positiveTotals = allRows.map(row =>
       Math.max(
         row.budget2026,
         Math.max(0, row.ungrValue) + Math.max(0, row.grValue) + Math.max(0, row.prValue)
       )
     );
-    const negativeTotals = rows.map(row =>
+    const negativeTotals = allRows.map(row =>
       Math.min(0, row.ungrValue) + Math.min(0, row.grValue) + Math.min(0, row.prValue)
     );
     const maxTotal = Math.max(1, ...positiveTotals);
@@ -2658,6 +2590,21 @@
       svg.append(dot);
     });
 
+    // One focusable hit area per project includes zero amounts and the full budget balance.
+    rows.forEach((row, index) => {
+      const occupied = row.grValue + row.ungrValue + row.prValue;
+      const labels = state.language === "zh"
+        ? ["未收货", "已收货", "采购申请", "已占用", "未占用"]
+        : ["Unreceived", "Received", "Purchase requisitions", "Occupied", "Unoccupied"];
+      const values = [row.ungrValue, row.grValue, row.prValue, occupied, row.budget2026 - occupied];
+      const tip = `${row.wbs} · ${row.name}\n` + labels.map((label, i) => `${label}: ${fullMoney(values[i])}`).join("\n");
+      svg.append(svgElement("rect", {
+        x: left + categoryWidth * index, y: top, width: categoryWidth, height: height - top,
+        fill: "transparent", tabindex: 0, class: "capex-project-hit",
+        "data-tooltip": tip, "aria-label": tip
+      }));
+    });
+
     const legend = element("div", { class: "chart-legend capex-legend" });
     for (const item of [
     ...series,
@@ -2672,6 +2619,18 @@
       legend.append(entry);
     }
     container.append(legend);
+    if (pageCount > 1) {
+      const pager = element("div", { class: "project-pagination", role: "group", "aria-label": state.language === "zh" ? "项目分页" : "Project pages" });
+      const previous = element("button", { type: "button" }, state.language === "zh" ? "上一组" : "Previous");
+      const next = element("button", { type: "button" }, state.language === "zh" ? "下一组" : "Next");
+      previous.disabled = capexProjectPage === 0;
+      next.disabled = capexProjectPage === pageCount - 1;
+      previous.addEventListener("click", () => { capexProjectPage--; hideChartTooltip(); renderCapexProjectChart(); });
+      next.addEventListener("click", () => { capexProjectPage++; hideChartTooltip(); renderCapexProjectChart(); });
+      const status = element("span", { "aria-live": "polite" }, `${capexProjectPage * pageSize + 1}–${Math.min((capexProjectPage + 1) * pageSize, allRows.length)} / ${allRows.length}`);
+      pager.append(previous, status, next);
+      container.append(pager);
+    }
   }
 
   function renderCapex() {
@@ -2871,60 +2830,19 @@
 
   function renderCapexPlanGauge() {
     const container = document.getElementById("capex-plan-ungr-gauge");
-    const value = data.capex.plan.ungrValue;
-    const maximum = data.capex.plan.assigned2026;
-    const ratio = maximum > 0 ? Math.min(value / maximum, 1) : 0;
-    const width = Math.max(container.clientWidth - 14, 250);
-    const height = Math.max(container.clientHeight - 12, 210);
+    const value = data.capex.plan.ungrValue, maximum = data.capex.plan.assigned2026;
+    const ratio = maximum > 0 ? value / maximum : 0;
+    const width = Math.max(container.clientWidth - 14, 220), height = Math.max(container.clientHeight - 12, 225);
     const svg = createSvg(container, width, height, "未交付采购订单");
-    svg.style.width = "100%";
-    svg.style.height = `${height}px`;
-    const cx = width / 2;
-    const cy = height * .78;
-    const radius = Math.min(width * .39, height * .62);
-    const arc = `M ${cx - radius} ${cy} A ${radius} ${radius} 0 0 1 ${cx + radius} ${cy}`;
-    const track = svgElement("path", {
-      d: arc,
-      fill: "none",
-      stroke: "#c9c9c9",
-      "stroke-width": 28,
-      "stroke-linecap": "butt",
-      pathLength: 100
-    });
-    const progress = svgElement("path", {
-      d: arc,
-      fill: "none",
-      stroke: "#171276",
-      "stroke-width": 28,
-      "stroke-linecap": "butt",
-      pathLength: 100,
-      "stroke-dasharray": `${ratio * 100} 100`
-    });
-    addTooltip(
-      progress,
-      "未交付采购订单",
-      value,
-      amount => capexPlanMillions(amount, 2)
-    );
-    svg.append(track, progress);
-    appendDataLabel(svg, {
-      x: cx,
-      y: cy - 5,
-      "text-anchor": "middle",
-      class: "capex-plan-gauge-value"
-    }, value, capexPlanMillions(value, 2));
-    svg.append(svgElement("text", {
-      x: cx - radius,
-      y: cy + 18,
-      "text-anchor": "middle",
-      class: "svg-value"
-    }, capexPlanMillions(0, 2)));
-    svg.append(svgElement("text", {
-      x: cx + radius,
-      y: cy + 18,
-      "text-anchor": "middle",
-      class: "svg-value"
-    }, capexPlanMillions(maximum, 2)));
+    svg.style.width = "100%"; svg.style.height = height+"px";
+    const cx=width/2,cy=height*.43,radius=Math.min(width*.37,height*.3);
+    const track=svgElement("circle",{cx,cy,r:radius,fill:"none",stroke:"#e3e6ef","stroke-width":16});
+    const progress=svgElement("circle",{cx,cy,r:radius,fill:"none",stroke:"#171276","stroke-width":16,"stroke-linecap":"round",pathLength:100,"stroke-dasharray":Math.min(1,ratio)*100+" 100",transform:"rotate(-90 "+cx+" "+cy+")"});
+    addTooltip(progress,"未交付采购订单",value,amount=>capexPlanMillions(amount,2));svg.append(track,progress);
+    appendDataLabel(svg,{x:cx,y:cy+2,"text-anchor":"middle",class:"capex-plan-gauge-value"},value,capexPlanMillions(value,2));
+    svg.append(svgElement("text",{x:cx,y:cy+25,"text-anchor":"middle",class:"capex-plan-gauge-caption"},state.language==="zh"?"未交付金额":"Open delivery value"));
+    svg.append(svgElement("text",{x:cx,y:cy+radius+40,"text-anchor":"middle",class:"capex-plan-gauge-ratio"},(ratio*100).toFixed(1)+"%"));
+    svg.append(svgElement("text",{x:cx,y:cy+radius+61,"text-anchor":"middle",class:"capex-plan-gauge-caption"},(state.language==="zh"?"占已分配金额 ":"of assigned ")+capexPlanMillions(maximum,2)));
   }
 
   function renderCapexPlanTable() {
@@ -3183,7 +3101,8 @@
     renderBreakdownTrend(rows);
     const equipmentCounts = new Map();
     for (const row of rows) {
-      const key = row.equipmentName || "设备未匹配";
+      if (!isMappedLabel(row.equipmentName)) continue;
+      const key = row.equipmentName;
       equipmentCounts.set(key, (equipmentCounts.get(key) || 0) + (Number(row.recordedDowntime) || 0));
     }
     renderBars(
@@ -3199,9 +3118,19 @@
           { maximumFractionDigits: 1 }
         ).format(value),
         formatTooltip: value => `${preciseNumberFormat.format(value)} h`,
+        showAllLabels: true,
         showAllValues: true
       }
     );
+    const bQuery = (state.workOrderQuery || "").trim().toLowerCase();
+    const tableRows = bQuery
+      ? rows.filter(r =>
+          String(r.order || "").toLowerCase().includes(bQuery) ||
+          String(r.description || "").toLowerCase().includes(bQuery) ||
+          String(r.equipmentName || "").toLowerCase().includes(bQuery) ||
+          String(r.functionalLocation || "").toLowerCase().includes(bQuery)
+        )
+      : rows;
     const container = document.getElementById("breakdown-table");
     container.replaceChildren(makeTable([
       { key: "year", label: "财年" },
@@ -3211,9 +3140,8 @@
       { key: "equipmentName", label: "设备名称" },
       { key: "functionalLocation", label: "功能位置" },
       { key: "recordedDowntime", label: "记录停机时间", numeric: true, render: value => numberFormat.format(value) },
-      { key: "downtimeHours", label: "停机小时 (MTH)", numeric: true, render: value => value ? numberFormat.format(value) : "—" },
       { key: "rca", label: "RCA / PDCA" }
-    ], rows));
+    ], tableRows));
   }
 
   function getStatusRows() {
@@ -3438,36 +3366,40 @@
     svg.style.height = `${Math.max(145, container.clientHeight - legend.offsetHeight - 8)}px`;
   }
 
-  function renderDailyWorkOrders() {
-    const rows = (data.workOrderSchedule || []).filter(row =>
-      matchesSelection(state.year, row.year) &&
-      matchesSelection(state.month, row.month)
-    );
-    renderDailyScheduleChart(rows);
+  function selectCurrentWorkOrderMonth() {
+    const now = new Date();
+    state.year = ["2026"];
+    state.month = [String(now.getMonth() + 1)];
+    state.yearFilterTouched = true;
+    state.selection = null;
+  }
 
-    const stateOrder = ["Unplanned", "Not started", "Ongoing", "Done", "Total", "Completed Rate"];
-    const tableRows = rows
-      .slice()
-      .sort((a, b) => a.month - b.month || stateOrder.indexOf(a.state) - stateOrder.indexOf(b.state));
-    const monthFormatter = new Intl.DateTimeFormat(
-      state.language === "zh" ? "zh-CN" : "en",
-      { month: state.language === "zh" ? "long" : "short" }
-    );
-    const headers = [
-      { key: "month", label: "月份", numeric: true, render: value => monthFormatter.format(new Date(2000, value - 1, 1)) },
-      { key: "state", label: "工单状态", render: value => translateText(value) },
-      ...Array.from({ length: 31 }, (_, index) => ({
-        key: `day${index + 1}`,
-        label: String(index + 1),
-        numeric: true,
-        render: (value, row) => row.state === "Completed Rate"
-          ? percentage((Number(value) || 0) * 100)
-          : numberFormat.format(Number(value) || 0)
-      }))
-    ];
-    document.getElementById("daily-schedule-table").replaceChildren(
-      makeTable(headers, tableRows)
-    );
+  function selectDefaultEnergyPeriod() {
+    state.year = ["2024", "2025", "2026"];
+    state.month = [];
+    state.yearFilterTouched = true;
+    state.selection = null;
+  }
+
+  function restoreViewYearFilter(previousView, nextView) {
+    if (previousView === nextView) return;
+    if (previousView) {
+      viewYearFilters.set(previousView, {
+        year: [...state.year], touched: state.yearFilterTouched
+      });
+    }
+    if (nextView === "dailyWO") selectCurrentWorkOrderMonth();
+    if (nextView === "energy") selectDefaultEnergyPeriod();
+    const saved = viewYearFilters.get(nextView);
+    state.year = [...(saved?.year ?? (nextView === "energy" ? ["2024", "2025", "2026"] : ["2026"]))];
+    state.yearFilterTouched = saved?.touched ?? false;
+    if (state.selection?.field === "year") state.selection = null;
+  }
+
+  function renderDailyWorkOrders() {
+    const rows=(data.workOrderSchedule||[]).filter(row=>matchesSelection(state.year,row.year)&&matchesSelection(state.month,row.month));
+    renderDailyScheduleChart(rows);
+    window.EngineeringReportViews.dailySummary(document.getElementById('daily-schedule-table'),rows,{language:state.language,translate:translateText,percentage,number:numberFormat});
   }
 
   function renderDailyScheduleChart(rows) {
@@ -3482,10 +3414,12 @@
           .reduce((total, row) => total + (Number(row[`day${index + 1}`]) || 0), 0))
       ])
     );
-    const days = Array.from({ length: 31 }, (_, index) => index + 1);
+    const dayCount = Math.max(...rows.map(row => new Date(Number(row.year), Number(row.month), 0).getDate()));
+    const days = Array.from({ length: dayCount }, (_, index) => index + 1);
     const rateValues = days.map((_, index) => {
       const total = stateValues.get("Total")[index];
-      return total ? stateValues.get("Done")[index] / total * 100 : 0;
+      const completed = stateValues.get("Done")[index] + stateValues.get("Unplanned")[index];
+      return total ? completed / total * 100 : 0;
     });
     const totalValues = days.map((_, index) =>
       ["Done", "Not started", "Ongoing", "Unplanned"]
@@ -3682,44 +3616,25 @@
     setKpiText("energy-power", numberFormat.format(Math.round(sum(rows, "power"))));
     setKpiText("energy-gas", numberFormat.format(Math.round(sum(rows, "naturalGas"))));
     setKpiText("energy-production", numberFormat.format(Math.round(sum(rows, "production"))));
-    const chartRows = rows.map(row => ({
-      ...row,
-      label: monthLabel(row),
-      axisLabel: String(row.month).padStart(2, "0")
-    }));
-    renderSeriesChart("energy-consumption-chart", chartRows, [
-      { key: "steam", label: "Steam", color: "#5149ef" },
-      { key: "power", label: "Power", color: "#edb743" },
-      { key: "naturalGas", label: "Natural gas", color: "#8d78d4" }
-    ], "蒸汽、电力和天然气月度消耗", { indexed: true });
-    renderSeriesChart("energy-intensity-chart", chartRows, [
-      { key: "steamPerKg", label: "Steam / production ton", color: "#5149ef" },
-      { key: "powerPerKg", label: "Power / production ton", color: "#edb743" },
-      { key: "naturalGasPerKg", label: "Gas / production ton", color: "#8d78d4" }
-    ], "单位生产量能源强度", { indexed: true });
-    renderBars("energy-cost-chart", chartRows.map(row => ({
-      label: row.label,
-      key: row.label,
-      value: row.totalCost
-    })), null, { color: "#5149ef", label: "月度能源费用" });
-    const productionRows = data.production.filter(row =>
-      matchesSelection(state.year, row.year) &&
-      matchesSelection(state.month, row.month)
-    );
-    const productionByArea = ["LC", "OC", "FC", "SD"].map(area => ({
-      label: area,
-      value: sum(productionRows, area)
-    }));
-    renderBars("energy-production-chart", productionByArea, null, {
-      color: "#6963d9",
-      label: "生产量 by area",
-      formatValue: value => numberFormat.format(Math.round(value)),
-      formatTooltip: value => `${numberFormat.format(Math.round(value))} t`
-    });
+    const chartRows = rows;
+    const charts = [
+      ["energy-power-chart", { key: "power", intensityKey: "powerPerKg", title: "Power/kwh" }],
+      ["energy-gas-chart", { key: "naturalGas", intensityKey: "naturalGasPerKg", title: "Natural Gas/m3" }],
+      ["energy-steam-chart", { key: "steam", intensityKey: "steamPerKg", title: "Steam/ton" }],
+      ["energy-nitrogen-chart", { key: "nitrogen", intensityKey: "nitrogenPerKg", title: "Nitrogen/t" }],
+      ["energy-domestic-wastewater-chart", { key: "domesticWastewater", intensityKey: "domesticWastewaterPerKg", title: "Domestic waste water/t" }],
+      ["energy-industry-wastewater-chart", { key: "industryWastewater", intensityKey: "industryWastewaterPerKg", title: "Industry waste water/t" }],
+      ["energy-city-water-chart", { key: "cityWater", intensityKey: "cityWaterPerKg", title: "City water/m3" }]
+    ];
+    charts.forEach(([containerId, config]) => renderEnergyUtilityChart(containerId, chartRows, config));
   }
 
   function render() {
+    hideChartTooltip();
+    const previousView = document.body.dataset.view;
+    restoreViewYearFilter(previousView, state.view);
     document.body.dataset.view = state.view;
+    if (previousView !== state.view) window.scrollTo({top: 0, behavior: "instant"});
     document.querySelector(".filter-bar").hidden = ["capexPlan", "home"].includes(state.view);
     document.querySelector(".period-chip").hidden = ["capexPlan", "home"].includes(state.view);
     refreshMonthLabels();
@@ -3814,6 +3729,7 @@
     if (state.view === "energy") renderEnergy();
     applyLanguage();
     renderCurrencyControl();
+    document.dispatchEvent(new CustomEvent('engineering:render', { detail: { view: state.view, language: state.language, currency: state.currency } }));
   }
 
   function renderCurrencyControl() {
@@ -3837,6 +3753,42 @@
     label.textContent = state.language === "zh"
       ? `汇率：1 CNY = ${rateText} CHF`
       : `Rate: 1 CNY = ${rateText} CHF`;
+  }
+
+
+  function showToast(message) {
+    const container = document.getElementById("toast-container");
+    if (!container) return;
+    const toast = element("div", { class: "toast-item" }, message);
+    container.append(toast);
+    setTimeout(() => {
+      toast.style.opacity = "0";
+      toast.style.transform = "translateY(6px)";
+      toast.style.transition = "all 0.2s ease";
+      setTimeout(() => toast.remove(), 220);
+    }, 2200);
+  }
+
+  function resetAllFilters() {
+    state.year = ["2026"];
+    state.yearFilterTouched = false;
+    state.month = [];
+    if (state.view === "dailyWO") selectCurrentWorkOrderMonth();
+    if (state.view === "energy") selectDefaultEnergyPeriod();
+    state.scope = [];
+    state.costType = [];
+    state.costElement = [];
+    state.orderType = [];
+    state.equipment = [];
+    state.selection = null;
+    state.contractQuery = "";
+    state.workOrderQuery = "";
+    const contractSearch = document.getElementById("contract-search");
+    if (contractSearch) contractSearch.value = "";
+    const breakdownSearch = document.getElementById("breakdown-search");
+    if (breakdownSearch) breakdownSearch.value = "";
+    render();
+    showToast(state.language === "zh" ? "已重置所有筛选条件" : "All filters reset");
   }
 
   function initialize() {
@@ -3948,13 +3900,36 @@
     document.addEventListener("keydown", event => {
       if (event.key === "Escape") setMobileMenu(false);
     });
+
+    const resetBtn = document.getElementById("global-reset-btn");
+    if (resetBtn) {
+      resetBtn.addEventListener("click", resetAllFilters);
+    }
+    const contractSearch = document.getElementById("contract-search");
+    if (contractSearch) {
+      contractSearch.addEventListener("input", event => {
+        state.contractQuery = event.target.value;
+        renderContracts();
+        applyLanguage();
+      });
+    }
+    const breakdownSearch = document.getElementById("breakdown-search");
+    if (breakdownSearch) {
+      breakdownSearch.addEventListener("input", event => {
+        state.workOrderQuery = event.target.value;
+        renderBreakdown();
+        applyLanguage();
+      });
+    }
     document.getElementById("language-toggle").addEventListener("click", () => {
       state.language = state.language === "zh" ? "en" : "zh";
       render();
+      showToast(state.language === "zh" ? "已切换为中文" : "Switched to English");
     });
     document.getElementById("currency-toggle").addEventListener("click", () => {
       state.currency = state.currency === "CNY" ? "CHF" : "CNY";
       render();
+      showToast(state.language === "zh" ? `显示币种已切换为 ${state.currency}` : `Currency switched to ${state.currency}`);
     });
     document.body.addEventListener("pointerover", event => {
       const target = event.target.closest?.("[data-tooltip]");
@@ -3989,11 +3964,29 @@
       state.selection = null;
       render();
     });
+
+    const homeLangBtn = document.getElementById("home-language-toggle");
+    if (homeLangBtn) {
+      homeLangBtn.addEventListener("click", () => {
+        state.language = state.language === "zh" ? "en" : "zh";
+        render();
+        showToast(state.language === "zh" ? "已切换为中文" : "Switched to English");
+      });
+    }
+    let resizeFrame;
     window.addEventListener("resize", () => {
-      if (state.view !== "contracts") render();
+      cancelAnimationFrame(resizeFrame);
+      resizeFrame = requestAnimationFrame(() => render());
     });
     render();
   }
 
+  document.addEventListener('engineering:navigate', event => {
+    if (!Object.hasOwn(views, event.detail?.view)) return;
+    state.view = event.detail.view;
+    state.spendingDetail = null;
+    setMobileMenu(false);
+    render();
+  });
   initialize();
 })();
