@@ -45,7 +45,7 @@
     ["总金额", "Total Value"],
     ["返回CAPEX总览", "Back to CAPEX Overview"],
     ["小额支出：", "Small Spending:"],
-    ["外部服务成本 + 外部材料成本（< 5000 CHF）", "External Service Cost + External Material Cost (< 5000 CHF)"],
+    ["外部服务成本 + 外部材料成本（实际成本 < 5000 CHF）", "External Service Cost + External Material Cost (Actual Costs < 5000 CHF)"],
     ["改善：", "Improvement:"],
     ["ZPM6 工单成本", "ZPM6 Work Order Cost"],
     ["已收货金额", "GR Value"],
@@ -777,13 +777,13 @@
     return rows.reduce((total, row) => total + (Number(row[field]) || 0), 0);
   }
 
-  function convertCurrency(value, sourceCurrency = data.currency || "CNY") {
+  function convertCurrency(value, sourceCurrency = data.currency || "CNY", targetCurrency = state.currency) {
     const rates = data.capex.plan.exchangeRates;
     const sourceRate = Number(rates[sourceCurrency]);
-    const targetRate = Number(rates[state.currency]);
+    const targetRate = Number(rates[targetCurrency]);
     if (!Number.isFinite(sourceRate) || sourceRate <= 0 ||
         !Number.isFinite(targetRate) || targetRate <= 0) {
-      throw new Error(`Missing exchange rate for ${sourceCurrency} to ${state.currency}.`);
+      throw new Error(`Missing exchange rate for ${sourceCurrency} to ${targetCurrency}.`);
     }
     return (Number(value) || 0) / sourceRate * targetRate;
   }
@@ -1903,9 +1903,11 @@
 
   function getSpendingRows(kind) {
     return filteredWorkOrders()
-      .filter(row => kind === "improvement"
-        ? row.costType === "Improvement"
-        : ["External Service", "External Material"].includes(row.costElement))
+      .filter(row => {
+        if (kind === "improvement") return row.costType === "Improvement";
+        return ["External Service", "External Material"].includes(row.costElement) &&
+          convertCurrency(row.actual, data.currency || "CNY", "CHF") < 5000;
+      })
       .sort((a, b) => Math.abs(b.actual) - Math.abs(a.actual));
   }
 
