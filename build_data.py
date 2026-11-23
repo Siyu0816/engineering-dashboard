@@ -571,6 +571,7 @@ def read_capex_data():
         for _, row in exchange_rate_frame.iterrows()
         if clean_text(row.get("Currency Code"))
     }
+    exchange_rates.setdefault("USD", 0.1505)
     exchange_rates.setdefault("EUR", 0.1308)
     projects = []
     for _, row in project_frame.iterrows():
