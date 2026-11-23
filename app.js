@@ -740,9 +740,10 @@
 
   function showUngrdetails() {
     const orders = data.ungrOrders
-      .filter(row => row.currency === "CNY")
       .slice()
-      .sort((a, b) => String(b.date).localeCompare(String(a.date)));
+      .sort((a, b) =>
+        String(b.date).localeCompare(String(a.date))
+      );
     showDetailTable("未交付采购订单", [
       { key: "purchaseOrder", label: "采购订单" },
       { key: "description", label: "短文本" },
@@ -750,7 +751,14 @@
         key: "openDeliveryValue",
         label: "待交付金额",
         numeric: true,
-        render: value => fullMoney(value)
+        render: (value, row) =>
+          fullMoney(
+            convertCurrency(
+              value,
+              row.currency || "CNY",
+              "CNY"
+            )
+          )
       },
       { key: "date", label: "单据日期" },
       { key: "requisitioner", label: "申请人" }
