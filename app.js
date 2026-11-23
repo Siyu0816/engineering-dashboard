@@ -23,10 +23,10 @@
     ["CAPEX绩效", "CAPEX Performance"],
     ["能源看板", "Energy Dashboard"],
     ["筛选器", "Slicers"],
-    ["成本总览", "Overview-MC"],
-    ["区域成本", "Area-MC"],
-    ["成本明细", "Others-MC"],
-    ["维护合同", "Contract-MC"],
+    ["成本总览", "Overview"],
+    ["区域成本", "Area"],
+    ["成本明细", "Others"],
+    ["维护合同", "Contract"],
     ["设备故障", "Breakdown"],
     ["工单执行", "Work Order"],
     ["每日工单", "Daily WO"],
@@ -486,22 +486,22 @@
     },
     overview: {
       title: "Maintenance Cost Overview",
-      breadcrumb: "Overview-MC",
+      breadcrumb: "Overview",
       description: "维护成本、预算执行和工单构成"
     },
     area: {
       title: "Area Detail Report",
-      breadcrumb: "Area-MC",
+      breadcrumb: "Area",
       description: ""
     },
     details: {
       title: "Small Spending & Improvement",
-      breadcrumb: "Others-MC",
+      breadcrumb: "Others",
       description: ""
     },
     contracts: {
       title: "Contract Follow Up",
-      breadcrumb: "Contract-MC",
+      breadcrumb: "Contract",
       description: ""
     },
     capex: {
@@ -542,10 +542,10 @@
       subtitle: "Cost Overview",
       icon: "▣",
       items: [
-        ["overview", "维护成本总览", "Overview-MC"],
-        ["area", "区域维护成本", "Area-MC"],
-        ["details", "维护成本明细", "Others-MC"],
-        ["contracts", "维护合同", "Contract-MC"]
+        ["overview", "维护成本总览", "Overview"],
+        ["area", "区域维护成本", "Area"],
+        ["details", "维护成本明细", "Others"],
+        ["contracts", "维护合同", "Contract"]
       ]
     },
     {
