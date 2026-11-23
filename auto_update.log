@@ -239,3 +239,22 @@ CAPEX projects: 130
 Detailed actual total: 58,438,939.60 CNY
 Excluded rows without a posting period: 33 (55,407,978.98 CNY)
 Budget total: 119,265,168.72 CNY
+[main 43351fc] Dashboard Data Update
+ 2 files changed, 19 insertions(+), 1 deletion(-)
+To https://github.com/Siyu0816/engineering-dashboard.git
+   c362b30..43351fc  main -> main
+======================================== 
+Mon 11/23/2026  9:00:03.00 
+Generated dashboard-data.js
+Actual aggregates: 4,166
+Budget aggregates: 191
+Contracts: 23
+Work orders: 29,051
+Equipment: 93
+Work order status records: 36
+Breakdown records: 107
+Energy months: 87
+CAPEX projects: 130
+Detailed actual total: 58,438,939.60 CNY
+Excluded rows without a posting period: 33 (55,407,978.98 CNY)
+Budget total: 119,265,168.72 CNY
