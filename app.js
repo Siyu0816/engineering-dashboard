@@ -1702,11 +1702,20 @@
     for (const [type, id] of [["PM", "pm"], ["CM", "cm"], ["Improvement", "improvement"]]) {
       setKpiText(`${prefix}${id}`, `${(actual ? (typeTotals.get(type) || 0) / actual * 100 : 0).toFixed(2)}%`);
     }
-    const ungrValue = sum(
-      data.ungrOrders.filter(row => row.currency === "CNY"),
-      "openDeliveryValue"
-    );
+    const ungrValue = data.ungrOrders.reduce((total, row) => {
+      return total + convertCurrency(
+        row.openDeliveryValue,
+        row.currency || "CNY",
+        "CNY"
+      );
+    }, 0);
+
     setKpiText("kpi-ungr-value", kpiMoney(ungrValue));
+    // const ungrValue = sum(
+    //   data.ungrOrders.filter(row => row.currency === "CNY"),
+    //   "openDeliveryValue"
+    // );
+    // setKpiText("kpi-ungr-value", kpiMoney(ungrValue));
   }
 
   function renderAnnual() {
