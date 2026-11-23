@@ -751,6 +751,14 @@
         key: "openDeliveryValue",
         label: "待交付金额",
         numeric: true,
+
+        sortValue: row =>
+          convertCurrency(
+            row.openDeliveryValue,
+            row.currency || "CNY",
+            "CNY"
+          ),
+
         render: (value, row) =>
           fullMoney(
             convertCurrency(
@@ -1754,8 +1762,19 @@
       if (sortState) {
         const header = headers.find(item => item.key === sortState.key);
         sortedRows.sort((left, right) => {
-          const a = left.row[sortState.key];
-          const b = right.row[sortState.key];
+          // const a = left.row[sortState.key];
+          // const b = right.row[sortState.key];
+          const header = headers.find(
+            item => item.key === sortState.key
+          );
+
+          const a = header?.sortValue
+            ? header.sortValue(left.row)
+            : left.row[sortState.key];
+
+          const b = header?.sortValue
+            ? header.sortValue(right.row)
+            : right.row[sortState.key];
           const aEmpty = a == null || a === "";
           const bEmpty = b == null || b === "";
           if (aEmpty || bEmpty) return aEmpty === bEmpty ? left.index - right.index : aEmpty ? 1 : -1;
