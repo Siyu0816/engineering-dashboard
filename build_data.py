@@ -751,6 +751,9 @@ def read_capex_data():
                 "wbs": wbs,
                 "name": status_project_names.get(wbs) or project["name"],
                 "budget2026": project["budget2026"],
+                "budget2027": project["budget2027"],
+                "budget2028": project["budget2028"],
+                "budget2029": project["budget2029"],
                 "grValue": gr_value,
                 "ungrValue": ungr_value,
                 "prValue": pr_value,
@@ -813,6 +816,7 @@ def read_capex_data():
         )
 
         overview_by_year[year] = {
+            "totalBudget": total_budget,
             "approvedBudget": approved_budget,
             "notYetOccupied": not_yet_occupied,
             "poValue": po_value,

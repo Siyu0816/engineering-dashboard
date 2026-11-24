@@ -2458,12 +2458,26 @@
   }
 
   function renderCapexGauge() {
-    const {totalBudget,approvedBudget}=data.capex.overview;
+    // const {totalBudget,approvedBudget}=data.capex.overview;
+    const overview =
+        data.capex.overview.years[
+            state.capexYear
+        ];
+
+    const totalBudget =
+        overview.totalBudget;
+
+    const approvedBudget =
+        overview.approvedBudget;
     window.EngineeringReportViews.approval(document.getElementById('capex-budget-gauge'),totalBudget,approvedBudget,{language:state.language,money:capexOverviewMoney});
   }
 
   function renderCapexDistribution() {
-    const overview=data.capex.overview;
+    // const overview=
+    const overview =
+        data.capex.overview.years[
+            state.capexYear
+        ];
     window.EngineeringReportViews.distribution(document.getElementById('capex-distribution-chart'),[
       {label:translateText('未收货金额'),value:overview.ungrValue,color:'#171276'},
       {label:translateText('采购申请金额'),value:overview.prValue,color:'#ed6a36'},
@@ -2489,9 +2503,10 @@
     const bottom = 108;
     const plotHeight = height - top - bottom;
     const plotWidth = width - left - right;
+    const year = state.capexYear;
     const positiveTotals = allRows.map(row =>
       Math.max(
-        row.budget2026,
+        row[`budget${year}`],
         Math.max(0, row.ungrValue) + Math.max(0, row.grValue) + Math.max(0, row.prValue)
       )
     );
@@ -2566,9 +2581,9 @@
       }
 
       const occupied = row.grValue + row.ungrValue + row.prValue;
-      const remainingBudget = row.budget2026 - occupied;
+      const remainingBudget = row[`budget${year}`] - occupied;
       const pointY = yForValue(occupied);
-      const budgetY = yForValue(row.budget2026);
+      const budgetY = yForValue(row[`budget${year}`]);
       const errorBar = svgElement("line", {
         x1: center,
         y1: pointY,
@@ -2581,7 +2596,7 @@
       addTooltip(
         errorBar,
         `${row.wbs} ${row.name} · ${translateText("Approved Budget")}`,
-        row.budget2026
+        row[`budget${year}`]
       );
       svg.append(errorBar);
       for (const y of new Set([pointY, budgetY])) {
@@ -2596,7 +2611,7 @@
         }));
       }
 
-      occupiedPoints.push({ x: center, y: pointY, value: occupied, budget: row.budget2026, row });
+      occupiedPoints.push({ x: center, y: pointY, value: occupied, budget: row[`budget${year}`], row });
       const category = svgElement("text", {
         x: center,
         y: height - bottom + 12,
@@ -2615,7 +2630,7 @@
       svg.append(category);
       appendDataLabel(svg, {
         x: center,
-        y: Math.max(12, Math.min(yForValue(row.budget2026), pointY) - 16),
+        y: Math.max(12, Math.min(yForValue(row[`budget${year}`]), pointY) - 16),
         "text-anchor": "middle",
         class: "svg-value capex-budget-label"
       }, remainingBudget, capexChartMoney(remainingBudget));
@@ -2645,7 +2660,7 @@
       const labels = state.language === "zh"
         ? ["未收货", "已收货", "采购申请", "已占用", "未占用"]
         : ["Unreceived", "Received", "Purchase requisitions", "Occupied", "Unoccupied"];
-      const values = [row.ungrValue, row.grValue, row.prValue, occupied, row.budget2026 - occupied];
+      const values = [row.ungrValue, row.grValue, row.prValue, occupied, row[`budget${year}`] - occupied];
       const tip = `${row.wbs} · ${row.name}\n` + labels.map((label, i) => `${label}: ${fullMoney(values[i])}`).join("\n");
       svg.append(svgElement("rect", {
         x: left + categoryWidth * index, y: top, width: categoryWidth, height: height - top,
@@ -3937,6 +3952,33 @@
       state.capexPlanYear = capexPlanYearSelect.value;
       render();
     });
+    const capexYearSelect =
+        document.getElementById("capex-year-filter");
+
+    if (capexYearSelect) {
+
+        capexYearSelect.replaceChildren(
+            new Option("2026","2026"),
+            new Option("2027","2027"),
+            new Option("2028","2028"),
+            new Option("2029 ff","2029")
+        );
+
+        capexYearSelect.value =
+            state.capexYear;
+
+        capexYearSelect.addEventListener(
+            "change",
+            () => {
+
+                state.capexYear =
+                    capexYearSelect.value;
+
+                renderCapex();
+
+            }
+        );
+    }
     mountMultiPicker(document.getElementById("year-filter"), "year");
     mountMultiPicker(document.getElementById("month-filter"), "month");
     mountMultiPicker(document.getElementById("scope-filter"), "scope");
