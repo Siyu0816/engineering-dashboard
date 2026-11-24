@@ -464,6 +464,7 @@
     currency: "CNY",
     year: ["2026"],
     yearFilterTouched: false,
+    capexYear: "2026",
     capexPlanYear: "2026",
     month: [],
     scope: [],
@@ -2715,7 +2716,11 @@
   }
 
   function renderCapex() {
-    const overview = data.capex.overview;
+    // const overview = data.capex.overview;
+    const overview =
+        data.capex.overview.years[
+            state.capexYear
+        ];
     setKpiText("capex-overview-total-budget", capexOverviewMoney(overview.totalBudget));
     setKpiText("capex-overview-approved-budget", capexOverviewMoney(overview.approvedBudget));
     setKpiText("capex-overview-not-yet-occupied", capexOverviewMoney(overview.notYetOccupied));
