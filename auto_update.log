@@ -1571,3 +1571,19 @@ Traceback (most recent call last):
     for project in scoped_projects
                    ^^^^^^^^^^^^^^^
 NameError: name 'scoped_projects' is not defined
+[main 82193eb] Dashboard Data Update
+ 3 files changed, 70 insertions(+), 9 deletions(-)
+To https://github.com/Siyu0816/engineering-dashboard.git
+   febc8fe..82193eb  main -> main
+======================================== 
+Tue 11/24/2026 15:30:03.24 
+Traceback (most recent call last):
+  File "C:\Users\bais\Documents\GitHub\engineering-dashboard\build_data.py", line 1034, in <module>
+    main()
+    ~~~~^^
+  File "C:\Users\bais\Documents\GitHub\engineering-dashboard\build_data.py", line 929, in main
+    capex = read_capex_data()
+  File "C:\Users\bais\Documents\GitHub\engineering-dashboard\build_data.py", line 813, in read_capex_data
+    for project in scoped_projects
+                   ^^^^^^^^^^^^^^^
+NameError: name 'scoped_projects' is not defined
