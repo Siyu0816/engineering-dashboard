@@ -464,6 +464,7 @@
     currency: "CNY",
     year: ["2026"],
     yearFilterTouched: false,
+    capexYear: ["2026"],
     capexPlanYear: "2026",
     month: [],
     scope: [],
@@ -2457,12 +2458,79 @@
   }
 
   function renderCapexGauge() {
-    const {totalBudget,approvedBudget}=data.capex.overview;
+    // const {totalBudget,approvedBudget}=data.capex.overview;
+    const years =
+        state.capexYear.length
+            ? state.capexYear
+            : ["2026","2027","2028","2029"];
+    const selectedOverviews =
+        years.map(
+            year =>
+                data.capex.overview.years[year]
+        );
+
+    // const totalBudget =
+    //     selectedOverviews.reduce(
+    //         (s,x) => s + (x?.totalBudget || 0),
+    //         0
+    //     );
+
+    const totalBudget =
+        data.capex.overview.totalBudget;
+
+    const approvedBudget =
+        selectedOverviews.reduce(
+            (s,x) => s + (x?.approvedBudget || 0),
+            0
+        );
+  //   const overview =
+  //       data.capex.overview.years[
+  //           state.capexYear
+  //       ];
+
+  //   const totalBudget =
+  //       overview.totalBudget;
+
+  //   const approvedBudget =
+  //       overview.approvedBudget;
     window.EngineeringReportViews.approval(document.getElementById('capex-budget-gauge'),totalBudget,approvedBudget,{language:state.language,money:capexOverviewMoney});
   }
 
   function renderCapexDistribution() {
-    const overview=data.capex.overview;
+    // const overview=
+    // const overview =
+    //     data.capex.overview.years[
+    //         state.capexYear
+    //     ];
+    const years =
+        state.capexYear.length
+            ? state.capexYear
+            : ["2026","2027","2028","2029"];
+    const selectedOverviews =
+        years.map(
+            year =>
+                data.capex.overview.years[year]
+        );
+
+    const overview = {
+        ungrValue:
+            selectedOverviews.reduce(
+                (s,x)=>s+(x?.ungrValue||0),
+                0
+            ),
+
+        prValue:
+            selectedOverviews.reduce(
+                (s,x)=>s+(x?.prValue||0),
+                0
+            ),
+
+        grValue:
+            selectedOverviews.reduce(
+                (s,x)=>s+(x?.grValue||0),
+                0
+            )
+    };
     window.EngineeringReportViews.distribution(document.getElementById('capex-distribution-chart'),[
       {label:translateText('未收货金额'),value:overview.ungrValue,color:'#171276'},
       {label:translateText('采购申请金额'),value:overview.prValue,color:'#ed6a36'},
@@ -2472,6 +2540,42 @@
 
   let capexProjectPage = 0;
   function renderCapexProjectChart() {
+    const years =
+        state.capexYear.length
+            ? state.capexYear
+            : ["2026","2027","2028","2029"];
+
+    const getBudget = row =>
+        years.reduce(
+            (sum,year)=>
+                sum +
+                (row[`budget${year}`] || 0),
+            0
+        );
+    const getGR = row =>
+        years.reduce(
+            (sum,year)=>
+                sum +
+                (row[`grValue${year}`] || 0),
+            0
+        );
+
+    const getUnGR = row =>
+        years.reduce(
+            (sum,year)=>
+                sum +
+                (row[`ungrValue${year}`] || 0),
+            0
+        );
+
+    const getPR = row =>
+        years.reduce(
+            (sum,year)=>
+                sum +
+                (row[`prValue${year}`] || 0),
+            0
+        );
+
     const container = document.getElementById("capex-project-chart");
     const allRows = data.capex.overview.projectSummary;
     if (!allRows.length) return drawEmpty(container);
@@ -2488,14 +2592,15 @@
     const bottom = 108;
     const plotHeight = height - top - bottom;
     const plotWidth = width - left - right;
+    // const year = state.capexYear;
     const positiveTotals = allRows.map(row =>
       Math.max(
-        row.budget2026,
-        Math.max(0, row.ungrValue) + Math.max(0, row.grValue) + Math.max(0, row.prValue)
+        getBudget(row),
+        Math.max(0, getUnGR(row)) + Math.max(0, getGR(row)) + Math.max(0, getPR(row))
       )
     );
     const negativeTotals = allRows.map(row =>
-      Math.min(0, row.ungrValue) + Math.min(0, row.grValue) + Math.min(0, row.prValue)
+      Math.min(0, getUnGR(row)) + Math.min(0, getGR(row)) + Math.min(0, getPR(row))
     );
     const maxTotal = Math.max(1, ...positiveTotals);
     const minTotal = Math.min(0, ...negativeTotals);
@@ -2530,10 +2635,27 @@
 
     const categoryWidth = plotWidth / rows.length;
     const barWidth = Math.max(8, Math.min(34, categoryWidth * .68));
+    // const series = [
+    //   { key: "ungrValue", label: "未收货", color: "#171276" },
+    //   { key: "grValue", label: "已收货", color: "#cbd2ec" },
+    //   { key: "prValue", label: "采购申请", color: "#ed6a36" }
+    // ];
     const series = [
-      { key: "ungrValue", label: "未收货", color: "#171276" },
-      { key: "grValue", label: "已收货", color: "#cbd2ec" },
-      { key: "prValue", label: "采购申请", color: "#ed6a36" }
+        {
+            label:"未收货",
+            color:"#171276",
+            getter:getUnGR
+        },
+        {
+            label:"已收货",
+            color:"#cbd2ec",
+            getter:getGR
+        },
+        {
+            label:"采购申请",
+            color:"#ed6a36",
+            getter:getPR
+        }
     ];
     const occupiedPoints = [];
 
@@ -2542,7 +2664,8 @@
       let positiveStack = 0;
       let negativeStack = 0;
       for (const item of series) {
-        const value = row[item.key];
+        // const value = row[item.key];
+        const value = item.getter(row);
         const segmentHeight = Math.abs(value) / axisRange * plotHeight;
         const isNegative = value < 0;
         const y = isNegative
@@ -2564,10 +2687,11 @@
         else positiveStack += segmentHeight;
       }
 
-      const occupied = row.grValue + row.ungrValue + row.prValue;
-      const remainingBudget = row.budget2026 - occupied;
+      // const occupied = row.grValue + row.ungrValue + row.prValue;
+      const occupied = getGR(row) + getUnGR(row) + getPR(row);
+      const remainingBudget = getBudget(row) - occupied;
       const pointY = yForValue(occupied);
-      const budgetY = yForValue(row.budget2026);
+      const budgetY = yForValue(getBudget(row));
       const errorBar = svgElement("line", {
         x1: center,
         y1: pointY,
@@ -2580,7 +2704,7 @@
       addTooltip(
         errorBar,
         `${row.wbs} ${row.name} · ${translateText("Approved Budget")}`,
-        row.budget2026
+        getBudget(row)
       );
       svg.append(errorBar);
       for (const y of new Set([pointY, budgetY])) {
@@ -2595,7 +2719,7 @@
         }));
       }
 
-      occupiedPoints.push({ x: center, y: pointY, value: occupied, budget: row.budget2026, row });
+      occupiedPoints.push({ x: center, y: pointY, value: occupied, budget: getBudget(row), row });
       const category = svgElement("text", {
         x: center,
         y: height - bottom + 12,
@@ -2614,7 +2738,7 @@
       svg.append(category);
       appendDataLabel(svg, {
         x: center,
-        y: Math.max(12, Math.min(yForValue(row.budget2026), pointY) - 16),
+        y: Math.max(12, Math.min(yForValue(getBudget(row)), pointY) - 16),
         "text-anchor": "middle",
         class: "svg-value capex-budget-label"
       }, remainingBudget, capexChartMoney(remainingBudget));
@@ -2640,11 +2764,18 @@
 
     // One focusable hit area per project includes zero amounts and the full budget balance.
     rows.forEach((row, index) => {
-      const occupied = row.grValue + row.ungrValue + row.prValue;
+      const occupied = getGR(row) + getUnGR(row) + getPR(row);
       const labels = state.language === "zh"
         ? ["未收货", "已收货", "采购申请", "已占用", "未占用"]
         : ["Unreceived", "Received", "Purchase requisitions", "Occupied", "Unoccupied"];
-      const values = [row.ungrValue, row.grValue, row.prValue, occupied, row.budget2026 - occupied];
+      const values = [
+          getUnGR(row),
+          getGR(row),
+          getPR(row),
+          occupied,
+          getBudget(row) - occupied
+      ]
+      // const values = [row.ungrValue, row.grValue, row.prValue, occupied, getBudget(row) - occupied];
       const tip = `${row.wbs} · ${row.name}\n` + labels.map((label, i) => `${label}: ${fullMoney(values[i])}`).join("\n");
       svg.append(svgElement("rect", {
         x: left + categoryWidth * index, y: top, width: categoryWidth, height: height - top,
@@ -2715,7 +2846,77 @@
   }
 
   function renderCapex() {
-    const overview = data.capex.overview;
+    // const overview = data.capex.overview;
+    const years =
+        state.capexYear.length
+            ? state.capexYear
+            : ["2026","2027","2028","2029"];
+    const selectedOverviews =
+        years.map(
+            year =>
+                data.capex.overview.years[year]
+        );
+    const overview = {
+
+        // totalBudget:
+        //     selectedOverviews.reduce(
+        //         (s,x)=>
+        //             s + x.totalBudget,
+        //         0
+        //     ),
+
+        totalBudget:
+            data.capex.overview.totalBudget,
+
+        approvedBudget:
+            selectedOverviews.reduce(
+                (s,x)=>
+                    s +
+                    x.approvedBudget,
+                0
+            ),
+
+        notYetOccupied:
+            selectedOverviews.reduce(
+                (s,x)=>
+                    s +
+                    x.notYetOccupied,
+                0
+            ),
+
+        poValue:
+            selectedOverviews.reduce(
+                (s,x)=>
+                    s +
+                    x.poValue,
+                0
+            ),
+
+        prValue:
+            selectedOverviews.reduce(
+                (s,x)=>
+                    s +
+                    x.prValue,
+                0
+            ),
+
+        grValue:
+            selectedOverviews.reduce(
+                (s,x)=>
+                    s +
+                    x.grValue,
+                0
+            ),
+
+        ungrValue:
+            selectedOverviews.reduce(
+                (s,x)=>
+                    s +
+                    x.ungrValue,
+                0
+            )
+
+    };
     setKpiText("capex-overview-total-budget", capexOverviewMoney(overview.totalBudget));
     setKpiText("capex-overview-approved-budget", capexOverviewMoney(overview.approvedBudget));
     setKpiText("capex-overview-not-yet-occupied", capexOverviewMoney(overview.notYetOccupied));
@@ -3726,7 +3927,7 @@
     document.querySelector(".period-chip").hidden = ["capexPlan", "home"].includes(state.view);
     refreshMonthLabels();
     refreshScopeLabels();
-    for (const field of ["year", "month", "scope", "costType", "costElement", "orderType"]) {
+    for (const field of ["year", "month", "scope", "costType", "costElement", "orderType", "capexYear"]) {
       syncMultiPicker(field);
     }
     updateSelectionChip();
@@ -3932,6 +4133,67 @@
       state.capexPlanYear = capexPlanYearSelect.value;
       render();
     });
+    const capexYearSelect =
+        document.getElementById(
+            "capex-year-filter"
+        );
+
+    if (capexYearSelect) {
+
+        capexYearSelect.replaceChildren(
+            new Option("全部年份","all"),
+            new Option("2026","2026"),
+            new Option("2027","2027"),
+            new Option("2028","2028"),
+            new Option("2029","2029")
+        );
+
+        [...capexYearSelect.options]
+            .forEach(option => {
+
+                if (
+                    state.capexYear.includes(
+                        option.value
+                    )
+                ) {
+                    option.selected = true;
+                }
+
+            });
+        mountMultiPicker(
+          document.getElementById(
+              "capex-year-filter"
+          ),
+          "capexYear"
+      );
+    }
+    // const capexYearSelect =
+    //     document.getElementById("capex-year-filter");
+
+    // if (capexYearSelect) {
+
+    //     capexYearSelect.replaceChildren(
+    //         new Option("2026","2026"),
+    //         new Option("2027","2027"),
+    //         new Option("2028","2028"),
+    //         new Option("2029 ff","2029")
+    //     );
+
+    //     capexYearSelect.value =
+    //         state.capexYear;
+
+    //     capexYearSelect.addEventListener(
+    //         "change",
+    //         () => {
+
+    //             state.capexYear =
+    //                 capexYearSelect.value;
+
+    //             renderCapex();
+
+    //         }
+    //     );
+    // }
     mountMultiPicker(document.getElementById("year-filter"), "year");
     mountMultiPicker(document.getElementById("month-filter"), "month");
     mountMultiPicker(document.getElementById("scope-filter"), "scope");

@@ -225,6 +225,28 @@
 
       <section id="view-capex" class="view-panel" hidden>
         <div class="section-summary"><h2>CAPEX 总览</h2></div>
+        <!-- <div class="control-group">
+            <label for="capex-year-filter">Year</label>
+            <select id="capex-year-filter">
+                <option value="2026">2026</option>
+                <option value="2027">2027</option>
+                <option value="2028">2028</option>
+                <option value="2029">2029 ff</option>
+            </select>
+        </div> -->
+        <label class="filter-control">
+            <span>CAPEX Year</span>
+
+            <select
+                id="capex-year-filter"
+                multiple
+                size="4">
+                <option value="2026">2026</option>
+                <option value="2027">2027</option>
+                <option value="2028">2028</option>
+                <option value="2029">2029 ff</option>
+            </select>
+        </label>
         <div class="kpi-grid capex-kpis">
           <article class="kpi-card accent-teal"><div class="kpi-label">总预算</div><div id="capex-overview-total-budget" class="kpi-value">—</div></article>
           <article class="kpi-card accent-blue"><div class="kpi-label">已批准预算</div><div id="capex-overview-approved-budget" class="kpi-value">—</div></article>

@@ -1542,141 +1542,82 @@ Excluded rows without a posting period: 32 (54,377,521.55 CNY)
 Budget total: 119,265,168.72 CNY
 [main febc8fe] Dashboard Data Update
  2 files changed, 20 insertions(+), 1 deletion(-)
-======================================== 
-Tue 11/24/2026 16:58:47.34 
-Generated dashboard-data.js
-Actual aggregates: 4,166
-Budget aggregates: 191
-Contracts: 23
-Work orders: 29,078
-Equipment: 93
-Work order status records: 36
-Breakdown records: 107
-Energy months: 87
-CAPEX projects: 130
-Detailed actual total: 58,547,691.49 CNY
-Excluded rows without a posting period: 32 (54,377,521.55 CNY)
-Budget total: 119,265,168.72 CNY
-[main e7c1727] Dashboard Data Update
- 2 files changed, 18 insertions(+), 1 deletion(-)
 To https://github.com/Siyu0816/engineering-dashboard.git
- ! [rejected]        main -> main (non-fast-forward)
-error: failed to push some refs to 'https://github.com/Siyu0816/engineering-dashboard.git'
-hint: Updates were rejected because the tip of your current branch is behind
-hint: its remote counterpart. If you want to integrate the remote changes,
-hint: use 'git pull' before pushing again.
-hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+   d612d6d..febc8fe  main -> main
 ======================================== 
-Tue 11/24/2026 17:00:07.13 
-Generated dashboard-data.js
-Actual aggregates: 4,166
-Budget aggregates: 191
-Contracts: 23
-Work orders: 29,078
-Equipment: 93
-Work order status records: 36
-Breakdown records: 107
-Energy months: 87
-CAPEX projects: 130
-Detailed actual total: 58,547,691.49 CNY
-Excluded rows without a posting period: 32 (54,377,521.55 CNY)
-Budget total: 119,265,168.72 CNY
-[main 380ac73] Dashboard Data Update
- 1 file changed, 24 insertions(+)
-To https://github.com/Siyu0816/engineering-dashboard.git
- ! [rejected]        main -> main (non-fast-forward)
-error: failed to push some refs to 'https://github.com/Siyu0816/engineering-dashboard.git'
-hint: Updates were rejected because the tip of your current branch is behind
-hint: its remote counterpart. If you want to integrate the remote changes,
-hint: use 'git pull' before pushing again.
-hint: See the 'Note about fast-forwards' in 'git push --help' for details.
-======================================== 
-Wed 11/25/2026  7:22:38.60 
-Generated dashboard-data.js
-Actual aggregates: 4,166
-Budget aggregates: 191
-Contracts: 23
-Work orders: 29,078
-Equipment: 93
-Work order status records: 36
-Breakdown records: 107
-Energy months: 87
-CAPEX projects: 130
-Detailed actual total: 58,547,691.49 CNY
-Excluded rows without a posting period: 32 (54,377,521.55 CNY)
-Budget total: 119,265,168.72 CNY
-[main a78bc15] Dashboard Data Update
- 2 files changed, 25 insertions(+), 1 deletion(-)
+Tue 11/24/2026 15:00:03.75 
+Traceback (most recent call last):
+  File "C:\Users\bais\Documents\GitHub\engineering-dashboard\build_data.py", line 1030, in <module>
+    main()
+    ~~~~^^
+  File "C:\Users\bais\Documents\GitHub\engineering-dashboard\build_data.py", line 925, in main
+    capex = read_capex_data()
+  File "C:\Users\bais\Documents\GitHub\engineering-dashboard\build_data.py", line 810, in read_capex_data
+    for project in scoped_projects
+                   ^^^^^^^^^^^^^^^
+NameError: name 'scoped_projects' is not defined
+[main 30e8af8] Dashboard Data Update
+ 4 files changed, 124 insertions(+), 21 deletions(-)
 fatal: unable to access 'https://github.com/Siyu0816/engineering-dashboard.git/': Empty reply from server
 ======================================== 
-Wed 11/25/2026  7:30:02.75 
-Generated dashboard-data.js
-Actual aggregates: 4,166
-Budget aggregates: 191
-Contracts: 23
-Work orders: 29,078
-Equipment: 93
-Work order status records: 36
-Breakdown records: 107
-Energy months: 87
-CAPEX projects: 130
-Detailed actual total: 58,547,691.49 CNY
-Excluded rows without a posting period: 32 (54,377,521.55 CNY)
-Budget total: 119,265,168.72 CNY
-[main 84b75c6] Dashboard Data Update
- 1 file changed, 18 insertions(+)
+Tue 11/24/2026 15:19:56.37 
+Traceback (most recent call last):
+  File "C:\Users\bais\Documents\GitHub\engineering-dashboard\build_data.py", line 1034, in <module>
+    main()
+    ~~~~^^
+  File "C:\Users\bais\Documents\GitHub\engineering-dashboard\build_data.py", line 929, in main
+    capex = read_capex_data()
+  File "C:\Users\bais\Documents\GitHub\engineering-dashboard\build_data.py", line 813, in read_capex_data
+    for project in scoped_projects
+                   ^^^^^^^^^^^^^^^
+NameError: name 'scoped_projects' is not defined
+[main 82193eb] Dashboard Data Update
+ 3 files changed, 70 insertions(+), 9 deletions(-)
 To https://github.com/Siyu0816/engineering-dashboard.git
- ! [rejected]        main -> main (non-fast-forward)
-error: failed to push some refs to 'https://github.com/Siyu0816/engineering-dashboard.git'
-hint: Updates were rejected because the tip of your current branch is behind
-hint: its remote counterpart. If you want to integrate the remote changes,
-hint: use 'git pull' before pushing again.
-hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+   febc8fe..82193eb  main -> main
 ======================================== 
-Wed 11/25/2026  8:00:04.19 
-Generated dashboard-data.js
-Actual aggregates: 4,166
-Budget aggregates: 191
-Contracts: 23
-Work orders: 29,078
-Equipment: 93
-Work order status records: 36
-Breakdown records: 107
-Energy months: 87
-CAPEX projects: 130
-Detailed actual total: 58,547,691.49 CNY
-Excluded rows without a posting period: 32 (54,377,521.55 CNY)
-Budget total: 119,265,168.72 CNY
-[main a9ef70f] Dashboard Data Update
- 1 file changed, 24 insertions(+)
-To https://github.com/Siyu0816/engineering-dashboard.git
- ! [rejected]        main -> main (non-fast-forward)
-error: failed to push some refs to 'https://github.com/Siyu0816/engineering-dashboard.git'
-hint: Updates were rejected because the tip of your current branch is behind
-hint: its remote counterpart. If you want to integrate the remote changes,
-hint: use 'git pull' before pushing again.
-hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+Tue 11/24/2026 15:30:03.24 
+Traceback (most recent call last):
+  File "C:\Users\bais\Documents\GitHub\engineering-dashboard\build_data.py", line 1034, in <module>
+    main()
+    ~~~~^^
+  File "C:\Users\bais\Documents\GitHub\engineering-dashboard\build_data.py", line 929, in main
+    capex = read_capex_data()
+  File "C:\Users\bais\Documents\GitHub\engineering-dashboard\build_data.py", line 813, in read_capex_data
+    for project in scoped_projects
+                   ^^^^^^^^^^^^^^^
+NameError: name 'scoped_projects' is not defined
+[main 8b800c8] Dashboard Data Update
+ 1 file changed, 16 insertions(+)
+fatal: unable to access 'https://github.com/Siyu0816/engineering-dashboard.git/': Empty reply from server
 ======================================== 
-Wed 11/25/2026  8:30:13.35 
-Generated dashboard-data.js
-Actual aggregates: 4,166
-Budget aggregates: 191
-Contracts: 23
-Work orders: 29,078
-Equipment: 93
-Work order status records: 36
-Breakdown records: 107
-Energy months: 87
-CAPEX projects: 130
-Detailed actual total: 58,547,691.49 CNY
-Excluded rows without a posting period: 32 (54,377,521.55 CNY)
-Budget total: 119,265,168.72 CNY
-[main 3c80c93] Dashboard Data Update
- 1 file changed, 24 insertions(+)
+Tue 11/24/2026 16:00:03.58 
+Traceback (most recent call last):
+  File "C:\Users\bais\Documents\GitHub\engineering-dashboard\build_data.py", line 1034, in <module>
+    main()
+    ~~~~^^
+  File "C:\Users\bais\Documents\GitHub\engineering-dashboard\build_data.py", line 929, in main
+    capex = read_capex_data()
+  File "C:\Users\bais\Documents\GitHub\engineering-dashboard\build_data.py", line 813, in read_capex_data
+    for project in scoped_projects
+                   ^^^^^^^^^^^^^^^
+NameError: name 'scoped_projects' is not defined
+[main 21cc8a6] Dashboard Data Update
+ 1 file changed, 15 insertions(+)
 To https://github.com/Siyu0816/engineering-dashboard.git
- ! [rejected]        main -> main (non-fast-forward)
-error: failed to push some refs to 'https://github.com/Siyu0816/engineering-dashboard.git'
-hint: Updates were rejected because the tip of your current branch is behind
-hint: its remote counterpart. If you want to integrate the remote changes,
-hint: use 'git pull' before pushing again.
-hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+   82193eb..21cc8a6  main -> main
+======================================== 
+Tue 11/24/2026 16:30:03.60 
+Traceback (most recent call last):
+  File "C:\Users\bais\Documents\GitHub\engineering-dashboard\build_data.py", line 1034, in <module>
+    main()
+    ~~~~^^
+  File "C:\Users\bais\Documents\GitHub\engineering-dashboard\build_data.py", line 929, in main
+    capex = read_capex_data()
+  File "C:\Users\bais\Documents\GitHub\engineering-dashboard\build_data.py", line 813, in read_capex_data
+    for project in scoped_projects
+                   ^^^^^^^^^^^^^^^
+NameError: name 'scoped_projects' is not defined
+[main e7f6158] Dashboard Data Update
+ 1 file changed, 16 insertions(+)
+fatal: unable to access 'https://github.com/Siyu0816/engineering-dashboard.git/': Empty reply from server
