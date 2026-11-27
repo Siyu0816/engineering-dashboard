@@ -2462,3 +2462,27 @@ Traceback (most recent call last):
     return round(float(value), 2)
                  ~~~~~^^^^^^^
 ValueError: could not convert string to float: '\xa0'
+[main 6ad57a8] Dashboard Data Update
+ 1 file changed, 23 insertions(+)
+To https://github.com/Siyu0816/engineering-dashboard.git
+   d592827..6ad57a8  main -> main
+======================================== 
+Fri 11/27/2026 16:00:02.62 
+Traceback (most recent call last):
+  File "C:\Users\bais\Documents\GitHub\engineering-dashboard\build_data.py", line 1075, in <module>
+    main()
+    ~~~~^^
+  File "C:\Users\bais\Documents\GitHub\engineering-dashboard\build_data.py", line 1039, in main
+    "workOrderStatus": read_work_order_status(),
+                       ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\bais\Documents\GitHub\engineering-dashboard\build_data.py", line 349, in read_work_order_status
+    "releasedNotifications": number(
+                             ~~~~~~^
+        row.get('Total Number\n"released" Notifications\nNot assigned to a WO')
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ),
+    ^
+  File "C:\Users\bais\Documents\GitHub\engineering-dashboard\build_data.py", line 48, in number
+    return round(float(value), 2)
+                 ~~~~~^^^^^^^
+ValueError: could not convert string to float: '\xa0'
