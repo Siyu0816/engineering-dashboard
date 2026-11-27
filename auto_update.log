@@ -2297,3 +2297,27 @@ CAPEX projects: 130
 Detailed actual total: 58,547,691.49 CNY
 Excluded rows without a posting period: 32 (54,377,521.55 CNY)
 Budget total: 119,265,168.72 CNY
+[main f4fe68d] Dashboard Data Update
+ 1 file changed, 19 insertions(+)
+To https://github.com/Siyu0816/engineering-dashboard.git
+   ed721ac..f4fe68d  main -> main
+======================================== 
+Fri 11/27/2026 14:06:22.22 
+Traceback (most recent call last):
+  File "C:\Users\bais\Documents\GitHub\engineering-dashboard\build_data.py", line 1075, in <module>
+    main()
+    ~~~~^^
+  File "C:\Users\bais\Documents\GitHub\engineering-dashboard\build_data.py", line 1039, in main
+    "workOrderStatus": read_work_order_status(),
+                       ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\bais\Documents\GitHub\engineering-dashboard\build_data.py", line 349, in read_work_order_status
+    "releasedNotifications": number(
+                             ~~~~~~^
+        row.get('Total Number\n"released" Notifications\nNot assigned to a WO')
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ),
+    ^
+  File "C:\Users\bais\Documents\GitHub\engineering-dashboard\build_data.py", line 48, in number
+    return round(float(value), 2)
+                 ~~~~~^^^^^^^
+ValueError: could not convert string to float: '\xa0'
