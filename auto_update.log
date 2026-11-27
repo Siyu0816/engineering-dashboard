@@ -2182,3 +2182,24 @@ CAPEX projects: 130
 Detailed actual total: 58,547,691.49 CNY
 Excluded rows without a posting period: 32 (54,377,521.55 CNY)
 Budget total: 119,265,168.72 CNY
+[main 7d669a9] Dashboard Data Update
+ 2 files changed, 20 insertions(+), 1 deletion(-)
+error: RPC failed; curl 52 Empty reply from server
+send-pack: unexpected disconnect while reading sideband packet
+fatal: the remote end hung up unexpectedly
+Everything up-to-date
+======================================== 
+Fri 11/27/2026 12:36:22.21 
+Generated dashboard-data.js
+Actual aggregates: 4,166
+Budget aggregates: 191
+Contracts: 23
+Work orders: 29,078
+Equipment: 93
+Work order status records: 36
+Breakdown records: 107
+Energy months: 87
+CAPEX projects: 130
+Detailed actual total: 58,547,691.49 CNY
+Excluded rows without a posting period: 32 (54,377,521.55 CNY)
+Budget total: 119,265,168.72 CNY
